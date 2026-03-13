@@ -9,7 +9,8 @@
       "**/*"
     ],
     "web": {
-      "bundler": "metro"
+      "bundler": "metro",
+      "output": "static"
     }
   }
 }
