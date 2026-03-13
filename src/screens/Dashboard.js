@@ -6,12 +6,14 @@ import {
   SafeAreaView, 
   ScrollView,
   ActivityIndicator,
-  RefreshControl
+  RefreshControl,
+  TouchableOpacity,
+  Alert
 } from 'react-native';
 // Updated import path to match your 'src/lib/supabase.js' structure
 import { supabase } from '../lib/supabase';
 
-const Dashboard = () => {
+const Dashboard = ({ navigation }) => {
   const [classes, setClasses] = useState([]);
   const [courses, setCourses] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -20,12 +22,10 @@ const Dashboard = () => {
   const fetchData = async () => {
     setLoading(true);
     try {
-      // Fetching from 'classes' table
       const { data: classesData, error: classesError } = await supabase
         .from('classes')
         .select('*');
       
-      // Fetching from 'courses' table
       const { data: coursesData, error: coursesError } = await supabase
         .from('courses')
         .select('*');
@@ -52,6 +52,16 @@ const Dashboard = () => {
     fetchData();
   };
 
+  const handleLogout = async () => {
+    const { error } = await supabase.auth.signOut();
+    if (error) {
+      Alert.alert('Error', 'Failed to log out');
+    } else {
+      // Use replace so the user can't go "back" to the dashboard
+      navigation.replace('Login');
+    }
+  };
+
   const renderTableItem = (item, type) => (
     <View style={styles.card} key={item.id}>
       <Text style={styles.cardTitle}>{item.title || item.name}</Text>
@@ -76,6 +86,14 @@ const Dashboard = () => {
 
   return (
     <SafeAreaView style={styles.container}>
+      {/* Header with Logout Button */}
+      <View style={styles.header}>
+        <Text style={styles.headerTitle}>Dashboard</Text>
+        <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
+          <Text style={styles.logoutText}>Logout</Text>
+        </TouchableOpacity>
+      </View>
+
       <ScrollView 
         contentContainerStyle={styles.scrollContent}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
@@ -103,6 +121,32 @@ const Dashboard = () => {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#F2F2F7' },
   centered: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingVertical: 15,
+    backgroundColor: '#FFF',
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E5EA',
+  },
+  headerTitle: {
+    fontSize: 22,
+    fontWeight: 'bold',
+    color: '#1C1C1E',
+  },
+  logoutButton: {
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+    backgroundColor: '#FF3B30', // Red color for logout
+  },
+  logoutText: {
+    color: '#FFF',
+    fontWeight: '600',
+    fontSize: 14,
+  },
   scrollContent: { padding: 16 },
   sectionHeader: { 
     fontSize: 20, 
