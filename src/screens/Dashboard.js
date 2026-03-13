@@ -2,14 +2,14 @@ import React, { useEffect, useState } from 'react';
 import { 
   View, 
   Text, 
-  FlatList, 
   StyleSheet, 
   SafeAreaView, 
   ScrollView,
   ActivityIndicator,
   RefreshControl
 } from 'react-native';
-import { supabase } from '../supabase';
+// Updated import path to match your 'src/lib/supabase.js' structure
+import { supabase } from '../lib/supabase';
 
 const Dashboard = () => {
   const [classes, setClasses] = useState([]);
