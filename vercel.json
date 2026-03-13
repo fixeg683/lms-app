@@ -1,5 +1,6 @@
 {
   "buildCommand": "npm run build:web",
-  "outputDirectory": "web-build",
-  "framework": null
+  "outputDirectory": "dist",
+  "framework": null,
+  "cleanUrls": true
 }
