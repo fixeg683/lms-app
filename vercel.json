@@ -1,6 +1,10 @@
 {
+  "framework": null,
   "buildCommand": "npm run build:web",
   "outputDirectory": "dist",
-  "framework": null,
-  "cleanUrls": true
+  "cleanUrls": true,
+  "env": {
+    "EXPO_PUBLIC_DISABLE_SOURCEMAPS": "true",
+    "NODE_ENV": "production"
+  }
 }
