@@ -9,6 +9,7 @@ import {
 } from "@react-navigation/drawer";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 
+// Screens
 import Login from "../screens/Login";
 import Signup from "../screens/Signup";
 import AdminDashboard from "../screens/AdminDashboard";
@@ -21,7 +22,7 @@ const DrawerIcon = (name, color, size) => (
   <MaterialCommunityIcons name={name} color={color} size={size} />
 );
 
-// Reusable Custom Drawer content for both Admin and User
+// Sidebar Content with Logout
 function CustomDrawerContent(props, roleName) {
   return (
     <View style={{ flex: 1 }}>
@@ -36,12 +37,7 @@ function CustomDrawerContent(props, roleName) {
       <View style={{ padding: 20, borderTopWidth: 1, borderTopColor: '#f4f4f4' }}>
         <TouchableOpacity 
           style={{ flexDirection: 'row', alignItems: 'center', padding: 10 }}
-          onPress={() => {
-            props.navigation.reset({
-              index: 0,
-              routes: [{ name: 'Login' }],
-            });
-          }}
+          onPress={() => props.navigation.reset({ index: 0, routes: [{ name: 'Login' }] })}
         >
           <MaterialCommunityIcons name="logout" color="#EF4444" size={24} />
           <Text style={{ color: '#EF4444', fontWeight: 'bold', marginLeft: 15 }}>Logout</Text>
@@ -51,26 +47,18 @@ function CustomDrawerContent(props, roleName) {
   );
 }
 
-// 1. Admin Sidebar Navigation
+// Admin Sidebar
 function AdminRoot() {
   return (
     <Drawer.Navigator
       drawerContent={(props) => CustomDrawerContent(props, "Admin")}
-      screenOptions={({ navigation }) => ({
+      screenOptions={{
         headerShown: true, 
         drawerType: Platform.OS === 'web' ? 'permanent' : 'front',
-        drawerStyle: { width: 260, backgroundColor: '#FFFFFF' },
+        drawerStyle: { width: 260 },
         headerTintColor: "#2563EB",
         drawerActiveTintColor: "#2563EB",
-        drawerLabelStyle: { fontWeight: '500', fontSize: 14 },
-        headerLeft: () => (
-          Platform.OS === 'web' ? null : ( 
-            <TouchableOpacity onPress={() => navigation.toggleDrawer()} style={{ marginLeft: 15 }}>
-              <MaterialCommunityIcons name="menu" size={26} color="#2563EB" />
-            </TouchableOpacity>
-          )
-        ),
-      })}
+      }}
     >
       <Drawer.Screen name="Dashboard" component={AdminDashboard} options={{ drawerIcon: ({color, size}) => DrawerIcon("view-dashboard-outline", color, size) }} />
       <Drawer.Screen name="Students" component={AdminDashboard} options={{ drawerIcon: ({color, size}) => DrawerIcon("school-outline", color, size) }} />
@@ -85,45 +73,22 @@ function AdminRoot() {
   );
 }
 
-// 2. Standard User Sidebar Navigation
+// User Sidebar (The fix for the Dashboard)
 function MainRoot() {
   return (
     <Drawer.Navigator
       drawerContent={(props) => CustomDrawerContent(props, "User")}
-      screenOptions={({ navigation }) => ({
+      screenOptions={{
         headerShown: true,
         drawerType: Platform.OS === 'web' ? 'permanent' : 'front',
-        drawerStyle: { width: 260, backgroundColor: '#FFFFFF' },
+        drawerStyle: { width: 260 },
         headerTintColor: "#2563EB",
         drawerActiveTintColor: "#2563EB",
-        drawerLabelStyle: { fontWeight: '500', fontSize: 14 },
-        headerLeft: () => (
-          Platform.OS === 'web' ? null : ( 
-            <TouchableOpacity onPress={() => navigation.toggleDrawer()} style={{ marginLeft: 15 }}>
-              <MaterialCommunityIcons name="menu" size={26} color="#2563EB" />
-            </TouchableOpacity>
-          )
-        ),
-      })}
+      }}
     >
-      <Drawer.Screen 
-        name="Dashboard" 
-        component={Dashboard} 
-        options={{ drawerIcon: ({color, size}) => DrawerIcon("home-outline", color, size) }} 
-      />
-      <Drawer.Screen 
-        name="MyGrades" 
-        component={Dashboard} 
-        options={{ 
-          title: "My Grades",
-          drawerIcon: ({color, size}) => DrawerIcon("school-outline", color, size) 
-        }} 
-      />
-      <Drawer.Screen 
-        name="Reports" 
-        component={Dashboard} 
-        options={{ drawerIcon: ({color, size}) => DrawerIcon("file-chart-outline", color, size) }} 
-      />
+      <Drawer.Screen name="Dashboard" component={Dashboard} options={{ drawerIcon: ({color, size}) => DrawerIcon("home-outline", color, size) }} />
+      <Drawer.Screen name="MyGrades" component={Dashboard} options={{ title: "My Grades", drawerIcon: ({color, size}) => DrawerIcon("school-outline", color, size) }} />
+      <Drawer.Screen name="Reports" component={Dashboard} options={{ drawerIcon: ({color, size}) => DrawerIcon("file-chart-outline", color, size) }} />
     </Drawer.Navigator>
   );
 }
