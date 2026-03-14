@@ -15,9 +15,13 @@ const Login = ({ navigation }) => {
   const [password, setPassword] = useState('');
 
   const handleSignIn = () => {
-    // Placeholder for non-auth logic
-    console.log("Attempting Sign In:", email);
-    navigation.replace('Dashboard');
+    // Logic: Redirect based on user role
+    // In your actual app, you would check the role from Supabase metadata
+    if (email.toLowerCase().includes('admin')) {
+      navigation.replace('AdminRoot'); // Redirect to Admin Dashboard
+    } else {
+      navigation.replace('Main'); // Redirect to Student/Teacher Dashboard
+    }
   };
 
   return (
@@ -63,18 +67,9 @@ const Login = ({ navigation }) => {
   );
 };
 
-// Styles shared between Login and Signup for consistency
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#F3F4F6', // Soft grey background
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  inner: {
-    width: '100%',
-    alignItems: 'center',
-  },
+  container: { flex: 1, backgroundColor: '#F3F4F6', justifyContent: 'center', alignItems: 'center' },
+  inner: { width: '100%', alignItems: 'center' },
   card: {
     width: '90%',
     maxWidth: 400,
@@ -89,51 +84,13 @@ const styles = StyleSheet.create({
     elevation: 5,
     alignItems: 'center',
   },
-  title: {
-    fontSize: 26,
-    fontWeight: '700',
-    color: '#111827',
-    marginBottom: 30,
-  },
-  input: {
-    width: '100%',
-    height: 52,
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
-    borderRadius: 8,
-    paddingHorizontal: 16,
-    marginBottom: 16,
-    backgroundColor: '#FAFAFA',
-    fontSize: 16,
-    color: '#1F2937',
-  },
-  button: {
-    width: '100%',
-    height: 52,
-    backgroundColor: '#2563EB', // Branded Blue
-    borderRadius: 8,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginTop: 10,
-  },
-  buttonText: {
-    color: '#FFF',
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  footer: {
-    flexDirection: 'row',
-    marginTop: 25,
-  },
-  footerText: {
-    color: '#6B7280',
-    fontSize: 14,
-  },
-  link: {
-    color: '#2563EB',
-    fontSize: 14,
-    fontWeight: '600',
-  },
+  title: { fontSize: 26, fontWeight: '700', color: '#111827', marginBottom: 30 },
+  input: { width: '100%', height: 52, borderWidth: 1, borderColor: '#E5E7EB', borderRadius: 8, paddingHorizontal: 16, marginBottom: 16, backgroundColor: '#FAFAFA', fontSize: 16, color: '#1F2937' },
+  button: { width: '100%', height: 52, backgroundColor: '#2563EB', borderRadius: 8, justifyContent: 'center', alignItems: 'center', marginTop: 10 },
+  buttonText: { color: '#FFF', fontSize: 16, fontWeight: '600' },
+  footer: { flexDirection: 'row', marginTop: 25 },
+  footerText: { color: '#6B7280', fontSize: 14 },
+  link: { color: '#2563EB', fontSize: 14, fontWeight: '600' },
 });
 
 export default Login;
