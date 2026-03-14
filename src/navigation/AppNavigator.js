@@ -1,12 +1,11 @@
 import React from "react";
-import { Platform, View, Text } from "react-native";
+import { Platform, View, Text, TouchableOpacity } from "react-native"; // Added TouchableOpacity
 import { NavigationContainer } from "@react-navigation/native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { 
   createDrawerNavigator, 
   DrawerContentScrollView, 
   DrawerItemList, 
-  DrawerItem 
 } from "@react-navigation/drawer";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 
@@ -22,24 +21,33 @@ const DrawerIcon = (name, color, size) => (
   <MaterialCommunityIcons name={name} color={color} size={size} />
 );
 
-// Custom Drawer component to handle Logout
+// Custom Drawer component with fixed Logout logic
 function CustomDrawerContent(props) {
   return (
     <View style={{ flex: 1 }}>
       <DrawerContentScrollView {...props}>
-        <View style={{ padding: 20, borderBottomWidth: 1, borderBottomColor: '#f4f4f4' }}>
+        <View style={{ padding: 20, borderBottomWidth: 1, borderBottomColor: '#f4f4f4', marginBottom: 10 }}>
           <Text style={{ fontWeight: 'bold', fontSize: 18, color: '#2563EB' }}>EduManage Pro</Text>
           <Text style={{ fontSize: 12, color: '#666' }}>Admin Panel</Text>
         </View>
         <DrawerItemList {...props} />
       </DrawerContentScrollView>
+      
+      {/* Enhanced Logout Button using TouchableOpacity for better web response */}
       <View style={{ padding: 20, borderTopWidth: 1, borderTopColor: '#f4f4f4' }}>
-        <DrawerItem
-          label="Logout"
-          labelStyle={{ color: '#EF4444', fontWeight: 'bold' }}
-          icon={({ size }) => <MaterialCommunityIcons name="logout" color="#EF4444" size={size} />}
-          onPress={() => props.navigation.replace('Login')}
-        />
+        <TouchableOpacity 
+          style={{ flexDirection: 'row', alignItems: 'center', padding: 10 }}
+          onPress={() => {
+            // Using reset to completely clear navigation state and return to Login
+            props.navigation.reset({
+              index: 0,
+              routes: [{ name: 'Login' }],
+            });
+          }}
+        >
+          <MaterialCommunityIcons name="logout" color="#EF4444" size={24} />
+          <Text style={{ color: '#EF4444', fontWeight: 'bold', marginLeft: 15 }}>Logout</Text>
+        </TouchableOpacity>
       </View>
     </View>
   );
@@ -49,14 +57,24 @@ function AdminRoot() {
   return (
     <Drawer.Navigator
       drawerContent={(props) => <CustomDrawerContent {...props} />}
-      screenOptions={{
+      screenOptions={({ navigation }) => ({
         headerShown: true, 
+        // On Web, use 'permanent' to match your screenshot. 
+        // On Mobile, use 'front' so the hamburger menu actually works.
         drawerType: Platform.OS === 'web' ? 'permanent' : 'front',
         drawerStyle: { width: 260, backgroundColor: '#FFFFFF' },
         headerTintColor: "#2563EB",
         drawerActiveTintColor: "#2563EB",
-        drawerLabelStyle: { fontWeight: '500', fontSize: 14 }
-      }}
+        drawerLabelStyle: { fontWeight: '500', fontSize: 14 },
+        // Fix for hamburger menu on web/mobile
+        headerLeft: () => (
+          Platform.OS === 'web' ? null : ( 
+            <TouchableOpacity onPress={() => navigation.toggleDrawer()} style={{ marginLeft: 15 }}>
+              <MaterialCommunityIcons name="menu" size={26} color="#2563EB" />
+            </TouchableOpacity>
+          )
+        ),
+      })}
     >
       <Drawer.Screen 
         name="Dashboard" 
