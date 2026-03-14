@@ -2,24 +2,28 @@ import React from 'react';
 import { View, Text, StyleSheet, ScrollView, Dimensions } from 'react-native';
 
 const AdminDashboard = ({ route }) => {
-  // Use the route name to show different views
   const currentTab = route.name;
 
   const renderContent = () => {
     switch (currentTab) {
       case 'Students':
-        return <ManagementView title="Student Management" description="View and edit student enrollment records." />;
+        return <ManagementView title="Student Management" description="View and edit student enrollment records." icon="👨‍🎓" />;
       case 'Subjects':
-        return <ManagementView title="Curriculum / Subjects" description="Manage course subjects and syllabi." />;
+        return <ManagementView title="Curriculum / Subjects" description="Manage course subjects and syllabi." icon="📚" />;
       case 'Grades':
-        return <ManagementView title="Grade Center" description="Input and verify student marks." />;
+        return <ManagementView title="Grade Center" description="Input and verify student marks." icon="📝" />;
       case 'Users':
-        return <ManagementView title="System Users" description="Manage accounts for Teachers and Admins." />;
+        return <ManagementView title="System Users" description="Manage accounts for Teachers and Admins." icon="🔐" />;
+      case 'Classes':
+        return <ManagementView title="Classes & Schedules" description="Assign teachers to active classrooms." icon="🏫" />;
       case 'ExamInstances':
-        return <ManagementView title="Exam Instances" description="Schedule and monitor active examinations." />;
+        return <ManagementView title="Exam Instances" description="Schedule and monitor active examinations." icon="⏳" />;
+      case 'Corrections':
+        return <ManagementView title="Corrections" description="Review and adjust submitted examination papers." icon="✍️" />;
       case 'Reports':
-        return <ManagementView title="Academic Reports" description="Generate performance analytics." />;
+        return <ManagementView title="Academic Reports" description="Generate performance analytics and CSV exports." icon="📊" />;
       default:
+        // Main Dashboard View
         return (
           <View style={styles.statsGrid}>
             <StatCard title="Total Students" value="1,240" color="#2563EB" icon="👥" />
@@ -33,7 +37,7 @@ const AdminDashboard = ({ route }) => {
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.scrollContent}>
       <View style={styles.header}>
-        <Text style={styles.welcomeText}>Admin: {currentTab}</Text>
+        <Text style={styles.welcomeText}>Admin: {currentTab === 'ExamInstances' ? 'Exam Instances' : currentTab}</Text>
         <Text style={styles.subText}>EduManage Pro | Secure Management Panel</Text>
       </View>
       {renderContent()}
@@ -41,12 +45,16 @@ const AdminDashboard = ({ route }) => {
   );
 };
 
-// Sub-components
-const ManagementView = ({ title, description }) => (
+const ManagementView = ({ title, description, icon }) => (
   <View style={styles.sectionCard}>
-    <Text style={styles.sectionTitle}>{title}</Text>
+    <View style={styles.sectionHeaderRow}>
+      <Text style={styles.sectionTitle}>{title}</Text>
+      <Text style={{ fontSize: 24 }}>{icon}</Text>
+    </View>
     <Text style={styles.placeholderText}>{description}</Text>
-    {/* You can add your Supabase FlatList here later */}
+    <View style={styles.tablePlaceholder}>
+      <Text style={{ color: '#9CA3AF', fontStyle: 'italic' }}>No data records found. Connect Supabase to fetch live data.</Text>
+    </View>
   </View>
 );
 
@@ -83,8 +91,10 @@ const styles = StyleSheet.create({
   cardTitle: { fontSize: 12, color: '#6B7280' },
   cardIcon: { fontSize: 24 },
   sectionCard: { backgroundColor: '#FFF', borderRadius: 12, padding: 30, elevation: 3 },
-  sectionTitle: { fontSize: 20, fontWeight: '700', marginBottom: 10 },
-  placeholderText: { color: '#9CA3AF' }
+  sectionHeaderRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 },
+  sectionTitle: { fontSize: 20, fontWeight: '700' },
+  placeholderText: { color: '#6B7280', marginBottom: 20 },
+  tablePlaceholder: { padding: 40, borderStyle: 'dashed', borderWidth: 1, borderColor: '#D1D5DB', borderRadius: 8, alignItems: 'center' }
 });
 
 export default AdminDashboard;
