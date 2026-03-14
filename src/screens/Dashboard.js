@@ -1,177 +1,114 @@
-import React, { useEffect, useState } from 'react';
-import { 
-  View, 
-  Text, 
-  StyleSheet, 
-  SafeAreaView, 
-  ScrollView,
-  ActivityIndicator,
-  RefreshControl,
-  TouchableOpacity,
-  Alert
-} from 'react-native';
-// Updated import path to match your 'src/lib/supabase.js' structure
-import { supabase } from '../lib/supabase';
+import React from 'react';
+import { View, Text, StyleSheet, ScrollView, Dimensions } from 'react-native';
 
-const Dashboard = ({ navigation }) => {
-  const [classes, setClasses] = useState([]);
-  const [courses, setCourses] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
+const Dashboard = ({ route }) => {
+  // Same logic as AdminDashboard: detect the active tab from the route
+  const currentTab = route.name;
 
-  const fetchData = async () => {
-    setLoading(true);
-    try {
-      const { data: classesData, error: classesError } = await supabase
-        .from('classes')
-        .select('*');
-      
-      const { data: coursesData, error: coursesError } = await supabase
-        .from('courses')
-        .select('*');
-
-      if (classesError) throw classesError;
-      if (coursesError) throw coursesError;
-
-      setClasses(classesData || []);
-      setCourses(coursesData || []);
-    } catch (error) {
-      console.error('Error fetching data:', error.message);
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
+  const renderContent = () => {
+    switch (currentTab) {
+      case 'MyGrades':
+        return (
+          <ManagementView 
+            title="My Academic Performance" 
+            description="View your semester results and GPA breakdown." 
+            icon="🎓" 
+          />
+        );
+      case 'Reports':
+        return (
+          <ManagementView 
+            title="Activity Reports" 
+            description="Download your attendance and progress summaries." 
+            icon="📊" 
+          />
+        );
+      default:
+        // Main Dashboard View (Standard Overview)
+        return (
+          <View style={styles.statsGrid}>
+            <StatCard title="Enrolled Courses" value="6" color="#2563EB" icon="📚" />
+            <StatCard title="Attendance" value="94%" color="#10B981" icon="📅" />
+            <StatCard title="Assignments" value="3" color="#F59E0B" icon="✍️" />
+          </View>
+        );
     }
   };
-
-  useEffect(() => {
-    fetchData();
-  }, []);
-
-  const onRefresh = () => {
-    setRefreshing(true);
-    fetchData();
-  };
-
-  const handleLogout = async () => {
-    const { error } = await supabase.auth.signOut();
-    if (error) {
-      Alert.alert('Error', 'Failed to log out');
-    } else {
-      // Use replace so the user can't go "back" to the dashboard
-      navigation.replace('Login');
-    }
-  };
-
-  const renderTableItem = (item, type) => (
-    <View style={styles.card} key={item.id}>
-      <Text style={styles.cardTitle}>{item.title || item.name}</Text>
-      <View style={styles.cardRow}>
-        <Text style={styles.label}>{type === 'class' ? 'Instructor:' : 'Code:'}</Text>
-        <Text style={styles.value}>{item.instructor_name || item.course_code || 'N/A'}</Text>
-      </View>
-      <View style={styles.cardRow}>
-        <Text style={styles.label}>Created:</Text>
-        <Text style={styles.value}>{new Date(item.created_at).toLocaleDateString()}</Text>
-      </View>
-    </View>
-  );
-
-  if (loading && !refreshing) {
-    return (
-      <View style={styles.centered}>
-        <ActivityIndicator size="large" color="#007AFF" />
-      </View>
-    );
-  }
 
   return (
-    <SafeAreaView style={styles.container}>
-      {/* Header with Logout Button */}
+    <ScrollView style={styles.container} contentContainerStyle={styles.scrollContent}>
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>Dashboard</Text>
-        <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
-          <Text style={styles.logoutText}>Logout</Text>
-        </TouchableOpacity>
+        <Text style={styles.welcomeText}>
+          {currentTab === 'MyGrades' ? 'My Grades' : currentTab}
+        </Text>
+        <Text style={styles.subText}>EduManage Pro | Personal Learning Portal</Text>
       </View>
-
-      <ScrollView 
-        contentContainerStyle={styles.scrollContent}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
-      >
-        <Text style={styles.sectionHeader}>🏫 Active Classes ({classes.length})</Text>
-        {classes.length > 0 ? (
-          classes.map((item) => renderTableItem(item, 'class'))
-        ) : (
-          <Text style={styles.emptyText}>No classes found in database.</Text>
-        )}
-
-        <View style={styles.divider} />
-
-        <Text style={styles.sectionHeader}>📚 Available Courses ({courses.length})</Text>
-        {courses.length > 0 ? (
-          courses.map((item) => renderTableItem(item, 'course'))
-        ) : (
-          <Text style={styles.emptyText}>No courses found in database.</Text>
-        )}
-      </ScrollView>
-    </SafeAreaView>
+      {renderContent()}
+    </ScrollView>
   );
 };
 
+// Reusable Management View (Matching Admin Format)
+const ManagementView = ({ title, description, icon }) => (
+  <View style={styles.sectionCard}>
+    <View style={styles.sectionHeaderRow}>
+      <Text style={styles.sectionTitle}>{title}</Text>
+      <Text style={{ fontSize: 24 }}>{icon}</Text>
+    </View>
+    <Text style={styles.placeholderText}>{description}</Text>
+    <View style={styles.tablePlaceholder}>
+      <Text style={{ color: '#9CA3AF', fontStyle: 'italic', textAlign: 'center' }}>
+        No recent records found in this category.
+      </Text>
+    </View>
+  </View>
+);
+
+// Reusable Stat Card (Matching Admin Format)
+const StatCard = ({ title, value, color, icon }) => (
+  <View style={[styles.card, { borderLeftColor: color, borderLeftWidth: 5 }]}>
+    <View>
+      <Text style={styles.cardValue}>{value}</Text>
+      <Text style={styles.cardTitle}>{title}</Text>
+    </View>
+    <Text style={styles.cardIcon}>{icon}</Text>
+  </View>
+);
+
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F2F2F7' },
-  centered: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  header: {
+  container: { flex: 1, backgroundColor: '#F9FAFB' },
+  scrollContent: { padding: 24 },
+  header: { marginBottom: 24 },
+  welcomeText: { fontSize: 26, fontWeight: '800', color: '#111827' },
+  subText: { fontSize: 13, color: '#6B7280' },
+  statsGrid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between' },
+  card: {
+    backgroundColor: '#FFF',
+    width: Dimensions.get('window').width > 768 ? '31%' : '100%',
+    padding: 20,
+    borderRadius: 12,
+    marginBottom: 16,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingVertical: 15,
-    backgroundColor: '#FFF',
-    borderBottomWidth: 1,
-    borderBottomColor: '#E5E5EA',
-  },
-  headerTitle: {
-    fontSize: 22,
-    fontWeight: 'bold',
-    color: '#1C1C1E',
-  },
-  logoutButton: {
-    paddingVertical: 6,
-    paddingHorizontal: 12,
-    borderRadius: 8,
-    backgroundColor: '#FF3B30', // Red color for logout
-  },
-  logoutText: {
-    color: '#FFF',
-    fontWeight: '600',
-    fontSize: 14,
-  },
-  scrollContent: { padding: 16 },
-  sectionHeader: { 
-    fontSize: 20, 
-    fontWeight: '700', 
-    color: '#1C1C1E', 
-    marginBottom: 12,
-    marginTop: 8 
-  },
-  card: { 
-    backgroundColor: '#FFF', 
-    borderRadius: 12, 
-    padding: 16, 
-    marginBottom: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.05,
-    shadowRadius: 8,
-    elevation: 2
+    elevation: 3,
   },
-  cardTitle: { fontSize: 18, fontWeight: '600', color: '#007AFF', marginBottom: 8 },
-  cardRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 4 },
-  label: { color: '#8E8E93', fontSize: 14 },
-  value: { color: '#3A3A3C', fontSize: 14, fontWeight: '500' },
-  divider: { height: 24 },
-  emptyText: { color: '#8E8E93', textAlign: 'center', marginVertical: 20 }
+  cardValue: { fontSize: 22, fontWeight: '700' },
+  cardTitle: { fontSize: 12, color: '#6B7280' },
+  cardIcon: { fontSize: 24 },
+  sectionCard: { backgroundColor: '#FFF', borderRadius: 12, padding: 30, elevation: 3 },
+  sectionHeaderRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 },
+  sectionTitle: { fontSize: 20, fontWeight: '700' },
+  placeholderText: { color: '#6B7280', marginBottom: 20 },
+  tablePlaceholder: { 
+    padding: 40, 
+    borderStyle: 'dashed', 
+    borderWidth: 1, 
+    borderColor: '#D1D5DB', 
+    borderRadius: 8, 
+    alignItems: 'center' 
+  }
 });
 
 export default Dashboard;
