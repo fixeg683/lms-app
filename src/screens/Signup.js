@@ -80,10 +80,10 @@ const Signup = ({ navigation }) => {
           <Text style={styles.label}>Select your role:</Text>
           <View style={styles.roleContainer}>
             <TouchableOpacity 
-              style={[styles.roleButton, role === 'student' && styles.activeRole]} 
+              style={[styles.roleButton, role === 'teacher' && styles.activeRole]} 
               onPress={() => setRole('student')}
             >
-              <Text style={[styles.roleText, role === 'student' && styles.activeRoleText]}>Student</Text>
+              <Text style={[styles.roleText, role === 'teacher' && styles.activeRoleText]}>Teacher</Text>
             </TouchableOpacity>
 
             <TouchableOpacity 
