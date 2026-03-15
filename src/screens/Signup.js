@@ -8,32 +8,43 @@ import { supabase } from '../lib/supabase';
 const Signup = ({ navigation }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [role, setRole] = useState('student'); // Default role
+  const [role, setRole] = useState('student'); 
   const [loading, setLoading] = useState(false);
 
   const handleSignUp = async () => {
     if (!email || !password) {
-      Alert.alert("Error", "Please fill in all fields.");
+      Alert.alert("Required Fields", "Please fill in both your email and password.");
       return;
     }
 
     setLoading(true);
+    
+    // Attempting to create the account in Supabase
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
       options: {
-        data: { role: role } // Storing role in metadata
+        data: { role: role } 
       }
     });
 
     setLoading(false);
+
     if (error) {
-      Alert.alert("Signup Failed", error.message);
+      Alert.alert("Signup Error", error.message);
     } else {
+      // SUCCESS POP-UP CONFIGURATION
       Alert.alert(
-        "Success", 
-        "Account created! Please check your email to confirm your registration.",
-        [{ text: "OK", onPress: () => navigation.replace('Login') }]
+        "Account Created Successfully!", 
+        "Your account has been registered. Please check your email for a verification link before signing in.",
+        [
+          { 
+            text: "Go to Login", 
+            onPress: () => navigation.replace('Login'),
+            style: "default"
+          }
+        ],
+        { cancelable: false }
       );
     }
   };
@@ -54,6 +65,7 @@ const Signup = ({ navigation }) => {
             value={email} 
             onChangeText={setEmail} 
             autoCapitalize="none"
+            keyboardType="email-address"
           />
 
           <TextInput 
@@ -65,7 +77,7 @@ const Signup = ({ navigation }) => {
             secureTextEntry
           />
 
-          <Text style={styles.label}>Select Role:</Text>
+          <Text style={styles.label}>Select your role:</Text>
           <View style={styles.roleContainer}>
             <TouchableOpacity 
               style={[styles.roleButton, role === 'student' && styles.activeRole]} 
@@ -87,7 +99,11 @@ const Signup = ({ navigation }) => {
             onPress={handleSignUp}
             disabled={loading}
           >
-            {loading ? <ActivityIndicator color="#FFF" /> : <Text style={styles.buttonText}>Sign Up</Text>}
+            {loading ? (
+              <ActivityIndicator color="#FFF" />
+            ) : (
+              <Text style={styles.buttonText}>Register Account</Text>
+            )}
           </TouchableOpacity>
 
           <View style={styles.footer}>
