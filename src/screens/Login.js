@@ -26,8 +26,8 @@ const Login = ({ navigation }) => {
       Alert.alert("Login Failed", error.message);
       setLoading(false);
     } else {
-      // Fetch user role from metadata stored during signup
-      const userRole = data.user.user_metadata?.role;
+      // Safely access metadata
+      const userRole = data.user?.user_metadata?.role || 'student';
       
       setLoading(false);
       if (userRole === 'admin') {
