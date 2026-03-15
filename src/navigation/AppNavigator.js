@@ -9,11 +9,21 @@ import {
 } from "@react-navigation/drawer";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 
-// Screens
+// Auth Screens
 import Login from "../screens/Login";
 import Signup from "../screens/Signup";
+
+// Management Screens (The New Additions)
 import AdminDashboard from "../screens/AdminDashboard";
 import Dashboard from "../screens/Dashboard";
+import Students from "../screens/Students";
+import Subjects from "../screens/Subjects";
+import Grades from "../screens/Grades";
+import Users from "../screens/Users";
+import Classes from "../screens/Classes";
+import ExamInstances from "../screens/ExamInstances";
+import Corrections from "../screens/Corrections";
+import Reports from "../screens/Reports";
 
 const Stack = createNativeStackNavigator();
 const Drawer = createDrawerNavigator();
@@ -47,7 +57,7 @@ function CustomDrawerContent(props, roleName) {
   );
 }
 
-// Admin Sidebar
+// 1. Admin Sidebar Navigation
 function AdminRoot() {
   return (
     <Drawer.Navigator
@@ -60,20 +70,56 @@ function AdminRoot() {
         drawerActiveTintColor: "#2563EB",
       }}
     >
-      <Drawer.Screen name="Dashboard" component={AdminDashboard} options={{ drawerIcon: ({color, size}) => DrawerIcon("view-dashboard-outline", color, size) }} />
-      <Drawer.Screen name="Students" component={AdminDashboard} options={{ drawerIcon: ({color, size}) => DrawerIcon("school-outline", color, size) }} />
-      <Drawer.Screen name="Subjects" component={AdminDashboard} options={{ drawerIcon: ({color, size}) => DrawerIcon("book-open-variant", color, size) }} />
-      <Drawer.Screen name="Grades" component={AdminDashboard} options={{ drawerIcon: ({color, size}) => DrawerIcon("format-list-checks", color, size) }} />
-      <Drawer.Screen name="Users" component={AdminDashboard} options={{ drawerIcon: ({color, size}) => DrawerIcon("account-cog-outline", color, size) }} />
-      <Drawer.Screen name="Classes" component={AdminDashboard} options={{ drawerIcon: ({color, size}) => DrawerIcon("google-classroom", color, size) }} />
-      <Drawer.Screen name="ExamInstances" component={AdminDashboard} options={{ title: "Exam Instances", drawerIcon: ({color, size}) => DrawerIcon("clock-outline", color, size) }} />
-      <Drawer.Screen name="Corrections" component={AdminDashboard} options={{ drawerIcon: ({color, size}) => DrawerIcon("file-check-outline", color, size) }} />
-      <Drawer.Screen name="Reports" component={AdminDashboard} options={{ drawerIcon: ({color, size}) => DrawerIcon("chart-bar", color, size) }} />
+      <Drawer.Screen 
+        name="Dashboard" 
+        component={AdminDashboard} 
+        options={{ drawerIcon: ({color, size}) => DrawerIcon("view-dashboard-outline", color, size) }} 
+      />
+      <Drawer.Screen 
+        name="Students" 
+        component={Students} 
+        options={{ drawerIcon: ({color, size}) => DrawerIcon("school-outline", color, size) }} 
+      />
+      <Drawer.Screen 
+        name="Subjects" 
+        component={Subjects} 
+        options={{ drawerIcon: ({color, size}) => DrawerIcon("book-open-variant", color, size) }} 
+      />
+      <Drawer.Screen 
+        name="Grades" 
+        component={Grades} 
+        options={{ drawerIcon: ({color, size}) => DrawerIcon("format-list-checks", color, size) }} 
+      />
+      <Drawer.Screen 
+        name="Users" 
+        component={Users} 
+        options={{ drawerIcon: ({color, size}) => DrawerIcon("account-cog-outline", color, size) }} 
+      />
+      <Drawer.Screen 
+        name="Classes" 
+        component={Classes} 
+        options={{ drawerIcon: ({color, size}) => DrawerIcon("google-classroom", color, size) }} 
+      />
+      <Drawer.Screen 
+        name="ExamInstances" 
+        component={ExamInstances} 
+        options={{ title: "Exam Instances", drawerIcon: ({color, size}) => DrawerIcon("clock-outline", color, size) }} 
+      />
+      <Drawer.Screen 
+        name="Corrections" 
+        component={Corrections} 
+        options={{ drawerIcon: ({color, size}) => DrawerIcon("file-check-outline", color, size) }} 
+      />
+      <Drawer.Screen 
+        name="Reports" 
+        component={Reports} 
+        options={{ drawerIcon: ({color, size}) => DrawerIcon("chart-bar", color, size) }} 
+      />
     </Drawer.Navigator>
   );
 }
 
-// User Sidebar (The fix for the Dashboard)
+// 2. Standard User Sidebar Navigation
 function MainRoot() {
   return (
     <Drawer.Navigator
@@ -86,9 +132,21 @@ function MainRoot() {
         drawerActiveTintColor: "#2563EB",
       }}
     >
-      <Drawer.Screen name="Dashboard" component={Dashboard} options={{ drawerIcon: ({color, size}) => DrawerIcon("home-outline", color, size) }} />
-      <Drawer.Screen name="MyGrades" component={Dashboard} options={{ title: "My Grades", drawerIcon: ({color, size}) => DrawerIcon("school-outline", color, size) }} />
-      <Drawer.Screen name="Reports" component={Dashboard} options={{ drawerIcon: ({color, size}) => DrawerIcon("file-chart-outline", color, size) }} />
+      <Drawer.Screen 
+        name="Dashboard" 
+        component={Dashboard} 
+        options={{ drawerIcon: ({color, size}) => DrawerIcon("home-outline", color, size) }} 
+      />
+      <Drawer.Screen 
+        name="MyGrades" 
+        component={Dashboard} 
+        options={{ title: "My Grades", drawerIcon: ({color, size}) => DrawerIcon("school-outline", color, size) }} 
+      />
+      <Drawer.Screen 
+        name="Reports" 
+        component={Dashboard} 
+        options={{ drawerIcon: ({color, size}) => DrawerIcon("file-chart-outline", color, size) }} 
+      />
     </Drawer.Navigator>
   );
 }
