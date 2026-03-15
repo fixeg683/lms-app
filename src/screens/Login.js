@@ -1,26 +1,40 @@
 import React, { useState } from 'react';
 import { 
-  View, 
-  Text, 
-  TextInput, 
-  TouchableOpacity, 
-  StyleSheet, 
-  SafeAreaView, 
-  KeyboardAvoidingView, 
-  Platform 
+  View, Text, TextInput, TouchableOpacity, StyleSheet, 
+  SafeAreaView, KeyboardAvoidingView, Platform, Alert, ActivityIndicator 
 } from 'react-native';
+import { supabase } from '../lib/supabase';
 
 const Login = ({ navigation }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [loading, setLoading] = useState(false);
 
-  const handleSignIn = () => {
-    const lowerEmail = email.toLowerCase();
-    // Logic: Redirect to AdminRoot if email contains 'admin', else to Main (User Drawer)
-    if (lowerEmail.includes('admin')) {
-      navigation.replace('AdminRoot');
+  const handleSignIn = async () => {
+    if (!email || !password) {
+      Alert.alert("Error", "Please enter both email and password.");
+      return;
+    }
+
+    setLoading(true);
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
+
+    if (error) {
+      Alert.alert("Login Failed", error.message);
+      setLoading(false);
     } else {
-      navigation.replace('Main');
+      // Fetch user role from metadata stored during signup
+      const userRole = data.user.user_metadata?.role;
+      
+      setLoading(false);
+      if (userRole === 'admin') {
+        navigation.replace('AdminRoot');
+      } else {
+        navigation.replace('Main');
+      }
     }
   };
 
@@ -49,11 +63,15 @@ const Login = ({ navigation }) => {
             placeholderTextColor="#9CA3AF" 
             value={password} 
             onChangeText={setPassword} 
-            secureTextEntry={true} 
+            secureTextEntry
           />
 
-          <TouchableOpacity style={styles.button} onPress={handleSignIn}>
-            <Text style={styles.buttonText}>Sign In</Text>
+          <TouchableOpacity 
+            style={styles.button} 
+            onPress={handleSignIn}
+            disabled={loading}
+          >
+            {loading ? <ActivityIndicator color="#FFF" /> : <Text style={styles.buttonText}>Sign In</Text>}
           </TouchableOpacity>
 
           <View style={styles.footer}>
@@ -69,75 +87,16 @@ const Login = ({ navigation }) => {
 };
 
 const styles = StyleSheet.create({
-  container: { 
-    flex: 1, 
-    backgroundColor: '#F3F4F6', 
-    justifyContent: 'center', 
-    alignItems: 'center' 
-  },
-  inner: { 
-    width: '100%', 
-    alignItems: 'center' 
-  },
-  card: { 
-    width: '90%', 
-    maxWidth: 400, 
-    backgroundColor: '#FFFFFF', 
-    borderRadius: 12, 
-    paddingVertical: 45,
-    paddingHorizontal: 35, 
-    elevation: 5, 
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 12,
-    alignItems: 'center' 
-  },
-  title: { 
-    fontSize: 28, 
-    fontWeight: '700', 
-    color: '#111827', 
-    marginBottom: 35 
-  },
-  input: { 
-    width: '100%', 
-    height: 54, 
-    borderWidth: 1, 
-    borderColor: '#E5E7EB', 
-    borderRadius: 8, 
-    paddingHorizontal: 16, 
-    marginBottom: 20, 
-    backgroundColor: '#FAFAFA',
-    fontSize: 16,
-    color: '#1F2937'
-  },
-  button: { 
-    width: '100%', 
-    height: 54, 
-    backgroundColor: '#2563EB', 
-    borderRadius: 8, 
-    justifyContent: 'center', 
-    alignItems: 'center',
-    marginTop: 5 
-  },
-  buttonText: { 
-    color: '#FFF', 
-    fontSize: 16, 
-    fontWeight: '600' 
-  },
-  footer: { 
-    flexDirection: 'row', 
-    marginTop: 30 
-  },
-  footerText: { 
-    color: '#6B7280',
-    fontSize: 14 
-  },
-  link: { 
-    color: '#2563EB', 
-    fontWeight: '600',
-    fontSize: 14 
-  }
+  container: { flex: 1, backgroundColor: '#F3F4F6', justifyContent: 'center', alignItems: 'center' },
+  inner: { width: '100%', alignItems: 'center' },
+  card: { width: '90%', maxWidth: 400, backgroundColor: '#FFFFFF', borderRadius: 12, padding: 35, elevation: 5, alignItems: 'center' },
+  title: { fontSize: 26, fontWeight: '700', color: '#111827', marginBottom: 30 },
+  input: { width: '100%', height: 52, borderWidth: 1, borderColor: '#E5E7EB', borderRadius: 8, paddingHorizontal: 16, marginBottom: 16, backgroundColor: '#FAFAFA' },
+  button: { width: '100%', height: 52, backgroundColor: '#2563EB', borderRadius: 8, justifyContent: 'center', alignItems: 'center' },
+  buttonText: { color: '#FFF', fontSize: 16, fontWeight: '600' },
+  footer: { flexDirection: 'row', marginTop: 25 },
+  footerText: { color: '#6B7280' },
+  link: { color: '#2563EB', fontWeight: '600' }
 });
 
 export default Login;
