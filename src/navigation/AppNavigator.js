@@ -9,11 +9,9 @@ import {
 } from "@react-navigation/drawer";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 
-// Auth Screens
+// Screens
 import Login from "../screens/Login";
 import Signup from "../screens/Signup";
-
-// Management Screens
 import AdminDashboard from "../screens/AdminDashboard";
 import Dashboard from "../screens/Dashboard";
 import Students from "../screens/Students";
@@ -32,6 +30,7 @@ const DrawerIcon = (name, color, size) => (
   <MaterialCommunityIcons name={name} color={color} size={size} />
 );
 
+// Sidebar Content with Logout
 function CustomDrawerContent(props, roleName) {
   return (
     <View style={{ flex: 1 }}>
@@ -56,6 +55,7 @@ function CustomDrawerContent(props, roleName) {
   );
 }
 
+// 1. Admin Sidebar Navigation
 function AdminRoot() {
   return (
     <Drawer.Navigator
@@ -81,6 +81,7 @@ function AdminRoot() {
   );
 }
 
+// 2. Standard User Sidebar Navigation
 function MainRoot() {
   return (
     <Drawer.Navigator
@@ -100,10 +101,23 @@ function MainRoot() {
   );
 }
 
-export default function AppNavigator() {
+// Main Navigator with Persistent Session Handling
+export default function AppNavigator({ session }) {
+  // logic to determine initial screen on refresh
+  const getInitialRoute = () => {
+    if (!session) return "Login";
+    
+    // Check role from Supabase metadata
+    const role = session.user?.user_metadata?.role;
+    return role === "admin" ? "AdminRoot" : "Main";
+  };
+
   return (
     <NavigationContainer>
-      <Stack.Navigator screenOptions={{ headerShown: false }}>
+      <Stack.Navigator 
+        initialRouteName={getInitialRoute()}
+        screenOptions={{ headerShown: false }}
+      >
         <Stack.Screen name="Login" component={Login} />
         <Stack.Screen name="Signup" component={Signup} />
         <Stack.Screen name="AdminRoot" component={AdminRoot} />
