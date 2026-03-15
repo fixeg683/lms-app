@@ -13,13 +13,13 @@ const Signup = ({ navigation }) => {
 
   const handleSignUp = async () => {
     if (!email || !password) {
-      Alert.alert("Required Fields", "Please fill in both your email and password.");
+      const msg = "Please fill in both your email and password.";
+      Platform.OS === 'web' ? alert(msg) : Alert.alert("Required Fields", msg);
       return;
     }
 
     setLoading(true);
     
-    // Attempting to create the account in Supabase
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
@@ -31,21 +31,25 @@ const Signup = ({ navigation }) => {
     setLoading(false);
 
     if (error) {
-      Alert.alert("Signup Error", error.message);
+      Platform.OS === 'web' ? alert(error.message) : Alert.alert("Signup Error", error.message);
     } else {
-      // SUCCESS POP-UP CONFIGURATION
-      Alert.alert(
-        "Account Created Successfully!", 
-        "Your account has been registered. Please check your email for a verification link before signing in.",
-        [
-          { 
-            text: "Go to Login", 
-            onPress: () => navigation.replace('Login'),
-            style: "default"
-          }
-        ],
-        { cancelable: false }
-      );
+      // CROSS-PLATFORM SUCCESS POP-UP
+      const successTitle = "Account Created Successfully!";
+      const successMsg = "Your account has been registered. Please check your email for a verification link.";
+
+      if (Platform.OS === 'web') {
+        // Web fallback using standard browser alert
+        alert(`${successTitle}\n\n${successMsg}`);
+        navigation.replace('Login');
+      } else {
+        // Mobile native Alert
+        Alert.alert(
+          successTitle, 
+          successMsg,
+          [{ text: "Go to Login", onPress: () => navigation.replace('Login') }],
+          { cancelable: false }
+        );
+      }
     }
   };
 
@@ -65,7 +69,6 @@ const Signup = ({ navigation }) => {
             value={email} 
             onChangeText={setEmail} 
             autoCapitalize="none"
-            keyboardType="email-address"
           />
 
           <TextInput 
@@ -80,10 +83,10 @@ const Signup = ({ navigation }) => {
           <Text style={styles.label}>Select your role:</Text>
           <View style={styles.roleContainer}>
             <TouchableOpacity 
-              style={[styles.roleButton, role === 'teacher' && styles.activeRole]} 
+              style={[styles.roleButton, role === 'student' && styles.activeRole]} 
               onPress={() => setRole('student')}
             >
-              <Text style={[styles.roleText, role === 'teacher' && styles.activeRoleText]}>Teacher</Text>
+              <Text style={[styles.roleText, role === 'student' && styles.activeRoleText]}>Student</Text>
             </TouchableOpacity>
 
             <TouchableOpacity 
@@ -118,6 +121,7 @@ const Signup = ({ navigation }) => {
   );
 };
 
+// ... keep existing styles ...
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#F3F4F6', justifyContent: 'center', alignItems: 'center' },
   inner: { width: '100%', alignItems: 'center' },
