@@ -11,6 +11,7 @@ const Classes = () => {
   useEffect(() => { fetchClasses(); }, []);
 
   const fetchClasses = async () => {
+    // Fetches class info + count of students in that class
     const { data } = await supabase.from('classes').select('*, students(count)');
     setClasses(data || []);
   };
@@ -50,19 +51,24 @@ const Classes = () => {
                 🗑
               </button>
             </div>
-            {/* Card Content... */}
-            <div className="w-12 h-12 bg-indigo-50 rounded-xl flex items-center justify-center mb-4 text-indigo-600">∩</div>
-            <h3 className="text-xl font-bold text-gray-800 capitalize">{item.name}</h3>
+            
+            <div className="w-12 h-12 bg-indigo-50 rounded-xl flex items-center justify-center mb-4 text-indigo-600 font-bold text-xl">∩</div>
+            <h3 className="text-xl font-bold text-gray-800 capitalize">{String(item.name || 'Untitled Class')}</h3>
             <p className="text-sm text-gray-400 mb-6">Academic Year: {item.academic_year}</p>
+            
             <div className="flex justify-between items-center pt-4 border-t border-gray-50">
-               <span className="text-sm text-gray-500 font-medium">{item.students[0]?.count || 0} students</span>
-               <button className="bg-gray-50 text-gray-700 px-4 py-1.5 rounded-lg text-sm font-bold border border-gray-200">Manage Roster</button>
+               <span className="text-sm text-gray-500 font-medium">
+                 {/* FIX: Access count property inside the first element of the array */}
+                 {item.students?.[0]?.count || 0} students
+               </span>
+               <button className="bg-gray-50 text-gray-700 px-4 py-1.5 rounded-lg text-sm font-bold border border-gray-200">
+                 Manage Roster
+               </button>
             </div>
           </div>
         ))}
       </div>
 
-      {/* Modals */}
       <CreateClassModal isOpen={isCreateOpen} onClose={() => setIsCreateOpen(false)} onRefresh={fetchClasses} />
       <DeleteModal 
         isOpen={deleteConfig.open} 

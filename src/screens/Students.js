@@ -8,7 +8,6 @@ const Students = () => {
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [deleteConfig, setDeleteConfig] = useState({ open: false, id: null, name: '' });
 
-  // Initial fetch
   useEffect(() => {
     fetchStudents();
   }, []);
@@ -30,7 +29,7 @@ const Students = () => {
 
     if (!error) {
       setDeleteConfig({ open: false, id: null, name: '' });
-      fetchStudents(); // Refresh data after delete
+      fetchStudents();
     }
   };
 
@@ -63,21 +62,23 @@ const Students = () => {
               <tr key={student.id} className="text-sm hover:bg-gray-50">
                 <td className="p-4 flex items-center gap-3">
                   <div className="w-10 h-10 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center font-bold text-xs uppercase">
-                    {student.full_name.substring(0, 2)}
+                    {/* GUARD: Prevents crash if full_name is null */}
+                    {student.full_name ? String(student.full_name).substring(0, 2) : '??'}
                   </div>
-                  <span className="font-bold text-gray-700">{student.full_name}</span>
+                  <span className="font-bold text-gray-700">{String(student.full_name || 'Unknown')}</span>
                 </td>
                 <td className="p-4">
                   <span className="bg-blue-50 text-blue-600 px-3 py-1 rounded-full text-xs font-bold">
+                    {/* FIX: Render the string property 'name', not the 'classes' object */}
                     {student.classes?.name || 'Unassigned'}
                   </span>
                 </td>
                 <td className="p-4">
                   <div className="flex gap-4">
-                    <button className="text-gray-400 hover:text-indigo-600">✎</button>
+                    <button className="text-gray-400 hover:text-indigo-600 text-lg">✎</button>
                     <button 
                       onClick={() => setDeleteConfig({ open: true, id: student.id, name: student.full_name })}
-                      className="text-red-300 hover:text-red-500"
+                      className="text-red-300 hover:text-red-500 text-lg"
                     >
                       🗑
                     </button>
@@ -89,13 +90,7 @@ const Students = () => {
         </table>
       </div>
 
-      {/* Logic to keep data synced: onRefresh calls fetchStudents */}
-      <AddStudentModal 
-        isOpen={isAddModalOpen} 
-        onClose={() => setIsAddModalOpen(false)} 
-        onRefresh={fetchStudents} 
-      />
-
+      <AddStudentModal isOpen={isAddModalOpen} onClose={() => setIsAddModalOpen(false)} onRefresh={fetchStudents} />
       <DeleteModal 
         isOpen={deleteConfig.open} 
         onClose={() => setDeleteConfig({ open: false, id: null, name: '' })} 

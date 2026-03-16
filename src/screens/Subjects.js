@@ -8,9 +8,7 @@ const Subjects = () => {
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [deleteConfig, setDeleteConfig] = useState({ open: false, id: null, name: '' });
 
-  useEffect(() => {
-    fetchSubjects();
-  }, []);
+  useEffect(() => { fetchSubjects(); }, []);
 
   const fetchSubjects = async () => {
     const { data } = await supabase.from('subjects').select('*');
@@ -18,11 +16,7 @@ const Subjects = () => {
   };
 
   const handleDelete = async () => {
-    const { error } = await supabase
-      .from('subjects')
-      .delete()
-      .eq('id', deleteConfig.id);
-
+    const { error } = await supabase.from('subjects').delete().eq('id', deleteConfig.id);
     if (!error) {
       setDeleteConfig({ open: false, id: null, name: '' });
       fetchSubjects();
@@ -54,20 +48,21 @@ const Subjects = () => {
             {subjects.map((subject) => (
               <tr key={subject.id} className="hover:bg-gray-50 text-sm">
                 <td className="p-4 flex items-center gap-3">
-                  <div className="w-8 h-8 bg-purple-50 rounded flex items-center justify-center text-purple-400 font-bold">
-                    ∫
-                  </div>
-                  <span className="font-bold text-gray-700">{subject.name}</span>
+                  <div className="w-8 h-8 bg-purple-50 rounded flex items-center justify-center text-purple-400 font-bold">∫</div>
+                  <span className="font-bold text-gray-700">{String(subject.name || 'Untitled')}</span>
                 </td>
                 <td className="p-4 text-gray-400 italic">
-                  {subject.description || 'No description provided'}
+                  {/* FIX: Ensure description is rendered as a string or fallback text */}
+                  {subject.description && typeof subject.description === 'string' 
+                    ? subject.description 
+                    : 'No description provided'}
                 </td>
                 <td className="p-4">
                   <div className="flex justify-center gap-4">
-                    <button className="text-gray-400 hover:text-indigo-600">✎</button>
+                    <button className="text-gray-400 hover:text-indigo-600 text-lg">✎</button>
                     <button 
                       onClick={() => setDeleteConfig({ open: true, id: subject.id, name: subject.name })}
-                      className="text-red-300 hover:text-red-500"
+                      className="text-red-300 hover:text-red-500 text-lg"
                     >
                       🗑
                     </button>
@@ -79,12 +74,7 @@ const Subjects = () => {
         </table>
       </div>
 
-      <AddSubjectModal 
-        isOpen={isAddModalOpen} 
-        onClose={() => setIsAddModalOpen(false)} 
-        onRefresh={fetchSubjects} 
-      />
-
+      <AddSubjectModal isOpen={isAddModalOpen} onClose={() => setIsAddModalOpen(false)} onRefresh={fetchSubjects} />
       <DeleteModal 
         isOpen={deleteConfig.open} 
         onClose={() => setDeleteConfig({ open: false, id: null, name: '' })} 
