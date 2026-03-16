@@ -26,18 +26,17 @@ import Reports from "../screens/Reports";
 const Stack = createNativeStackNavigator();
 const Drawer = createDrawerNavigator();
 
-const DrawerIcon = (name, color, size) => (
-  <MaterialCommunityIcons name={name} color={color} size={size} />
-);
-
 // Sidebar Content with Logout
-function CustomDrawerContent(props, roleName) {
+function CustomDrawerContent(props) {
+  // Use a fallback string to ensure no object is rendered
+  const roleName = props.roleName || "User"; 
+
   return (
     <View style={{ flex: 1 }}>
       <DrawerContentScrollView {...props}>
         <View style={{ padding: 20, borderBottomWidth: 1, borderBottomColor: '#f4f4f4', marginBottom: 10 }}>
           <Text style={{ fontWeight: 'bold', fontSize: 18, color: '#2563EB' }}>EduManage Pro</Text>
-          <Text style={{ fontSize: 12, color: '#666' }}>{roleName} Portal</Text>
+          <Text style={{ fontSize: 12, color: '#666' }}>{String(roleName)} Portal</Text>
         </View>
         <DrawerItemList {...props} />
       </DrawerContentScrollView>
@@ -59,7 +58,7 @@ function CustomDrawerContent(props, roleName) {
 function AdminRoot() {
   return (
     <Drawer.Navigator
-      drawerContent={(props) => CustomDrawerContent(props, "Admin")}
+      drawerContent={(props) => <CustomDrawerContent {...props} roleName="Admin" />}
       screenOptions={{
         headerShown: true, 
         drawerType: Platform.OS === 'web' ? 'permanent' : 'front',
@@ -68,15 +67,15 @@ function AdminRoot() {
         drawerActiveTintColor: "#2563EB",
       }}
     >
-      <Drawer.Screen name="Dashboard" component={AdminDashboard} options={{ drawerIcon: ({color, size}) => DrawerIcon("view-dashboard-outline", color, size) }} />
-      <Drawer.Screen name="Students" component={Students} options={{ drawerIcon: ({color, size}) => DrawerIcon("school-outline", color, size) }} />
-      <Drawer.Screen name="Subjects" component={Subjects} options={{ drawerIcon: ({color, size}) => DrawerIcon("book-open-variant", color, size) }} />
-      <Drawer.Screen name="Grades" component={Grades} options={{ drawerIcon: ({color, size}) => DrawerIcon("format-list-checks", color, size) }} />
-      <Drawer.Screen name="Users" component={Users} options={{ drawerIcon: ({color, size}) => DrawerIcon("account-cog-outline", color, size) }} />
-      <Drawer.Screen name="Classes" component={Classes} options={{ drawerIcon: ({color, size}) => DrawerIcon("google-classroom", color, size) }} />
-      <Drawer.Screen name="ExamInstances" component={ExamInstances} options={{ title: "Exam Instances", drawerIcon: ({color, size}) => DrawerIcon("clock-outline", color, size) }} />
-      <Drawer.Screen name="Corrections" component={Corrections} options={{ drawerIcon: ({color, size}) => DrawerIcon("file-check-outline", color, size) }} />
-      <Drawer.Screen name="Reports" component={Reports} options={{ drawerIcon: ({color, size}) => DrawerIcon("chart-bar", color, size) }} />
+      <Drawer.Screen name="Dashboard" component={AdminDashboard} options={{ drawerIcon: ({color, size}) => <MaterialCommunityIcons name="view-dashboard-outline" color={color} size={size} /> }} />
+      <Drawer.Screen name="Students" component={Students} options={{ drawerIcon: ({color, size}) => <MaterialCommunityIcons name="school-outline" color={color} size={size} /> }} />
+      <Drawer.Screen name="Subjects" component={Subjects} options={{ drawerIcon: ({color, size}) => <MaterialCommunityIcons name="book-open-variant" color={color} size={size} /> }} />
+      <Drawer.Screen name="Grades" component={Grades} options={{ drawerIcon: ({color, size}) => <MaterialCommunityIcons name="format-list-checks" color={color} size={size} /> }} />
+      <Drawer.Screen name="Users" component={Users} options={{ drawerIcon: ({color, size}) => <MaterialCommunityIcons name="account-cog-outline" color={color} size={size} /> }} />
+      <Drawer.Screen name="Classes" component={Classes} options={{ drawerIcon: ({color, size}) => <MaterialCommunityIcons name="google-classroom" color={color} size={size} /> }} />
+      <Drawer.Screen name="ExamInstances" component={ExamInstances} options={{ title: "Exam Instances", drawerIcon: ({color, size}) => <MaterialCommunityIcons name="clock-outline" color={color} size={size} /> }} />
+      <Drawer.Screen name="Corrections" component={Corrections} options={{ drawerIcon: ({color, size}) => <MaterialCommunityIcons name="file-check-outline" color={color} size={size} /> }} />
+      <Drawer.Screen name="Reports" component={Reports} options={{ drawerIcon: ({color, size}) => <MaterialCommunityIcons name="chart-bar" color={color} size={size} /> }} />
     </Drawer.Navigator>
   );
 }
@@ -85,7 +84,7 @@ function AdminRoot() {
 function MainRoot() {
   return (
     <Drawer.Navigator
-      drawerContent={(props) => CustomDrawerContent(props, "User")}
+      drawerContent={(props) => <CustomDrawerContent {...props} roleName="User" />}
       screenOptions={{
         headerShown: true,
         drawerType: Platform.OS === 'web' ? 'permanent' : 'front',
@@ -94,20 +93,19 @@ function MainRoot() {
         drawerActiveTintColor: "#2563EB",
       }}
     >
-      <Drawer.Screen name="Dashboard" component={Dashboard} options={{ drawerIcon: ({color, size}) => DrawerIcon("home-outline", color, size) }} />
-      <Drawer.Screen name="MyGrades" component={Dashboard} options={{ title: "My Grades", drawerIcon: ({color, size}) => DrawerIcon("school-outline", color, size) }} />
-      <Drawer.Screen name="Reports" component={Dashboard} options={{ drawerIcon: ({color, size}) => DrawerIcon("file-chart-outline", color, size) }} />
+      <Drawer.Screen name="Dashboard" component={Dashboard} options={{ drawerIcon: ({color, size}) => <MaterialCommunityIcons name="home-outline" color={color} size={size} /> }} />
+      <Drawer.Screen name="MyGrades" component={Dashboard} options={{ title: "My Grades", drawerIcon: ({color, size}) => <MaterialCommunityIcons name="school-outline" color={color} size={size} /> }} />
+      <Drawer.Screen name="Reports" component={Dashboard} options={{ drawerIcon: ({color, size}) => <MaterialCommunityIcons name="file-chart-outline" color={color} size={size} /> }} />
     </Drawer.Navigator>
   );
 }
 
-// Main Navigator with Persistent Session Handling
+// Main Navigator
 export default function AppNavigator({ session }) {
-  // logic to determine initial screen on refresh
   const getInitialRoute = () => {
-    if (!session) return "Login";
+    if (!session || !session.user) return "Login";
     
-    // Check role from Supabase metadata
+    // SAFE CHECK: Ensure role is a string and not an object
     const role = session.user?.user_metadata?.role;
     return role === "admin" ? "AdminRoot" : "Main";
   };
