@@ -1,40 +1,68 @@
-import React from 'react';
-import { View, Text, StyleSheet, FlatList } from 'react-native';
-import { MaterialCommunityIcons } from "@expo/vector-icons";
+import React, { useEffect, useState } from 'react';
+import { supabase } from '../lib/supabase';
 
 const Users = () => {
-  const users = [
-    { id: '1', name: 'Admin One', role: 'Administrator', email: 'admin@lms.com' },
-    { id: '2', name: 'Teacher Smith', role: 'Instructor', email: 'smith@lms.com' },
-  ];
+  const [users, setUsers] = useState([]);
+
+  useEffect(() => {
+    const fetchUsers = async () => {
+      // Assuming you have a custom 'profiles' table for user roles
+      const { data } = await supabase.from('profiles').select('*');
+      setUsers(data || []);
+    };
+    fetchUsers();
+  }, []);
 
   return (
-    <View style={styles.container}>
-      <FlatList
-        data={users}
-        contentContainerStyle={{ padding: 20 }}
-        keyExtractor={item => item.id}
-        renderItem={({ item }) => (
-          <View style={styles.userCard}>
-            <MaterialCommunityIcons name="account-circle-outline" size={40} color="#9CA3AF" />
-            <View style={styles.textContainer}>
-              <Text style={styles.name}>{item.name}</Text>
-              <Text style={styles.role}>{item.role} • {item.email}</Text>
-            </View>
-            <MaterialCommunityIcons name="dots-vertical" size={24} color="#6B7280" />
-          </View>
-        )}
-      />
-    </View>
+    <div className="p-8 bg-gray-50 min-h-screen">
+      <div className="flex justify-between items-center mb-6">
+        <div>
+          <h1 className="text-3xl font-bold text-gray-800">User Management</h1>
+          <p className="text-gray-500">Manage admin and teacher accounts</p>
+        </div>
+        <button className="bg-indigo-600 text-white px-6 py-2 rounded-lg font-bold">+ Add User</button>
+      </div>
+
+      <div className="bg-white rounded-2xl shadow-sm border border-gray-100">
+        <table className="w-full text-left">
+          <thead className="bg-gray-50 text-xs text-gray-400 uppercase">
+            <tr>
+              <th className="p-4">User</th>
+              <th className="p-4">Role</th>
+              <th className="p-4">Assigned Subjects</th>
+              <th className="p-4">Actions</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-gray-100">
+            {users.map((u) => (
+              <tr key={u.id} className="text-sm">
+                <td className="p-4 flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center font-bold text-xs uppercase">
+                    {u.username?.substring(0, 2)}
+                  </div>
+                  <span className="font-bold text-gray-700">{u.username}</span>
+                </td>
+                <td className="p-4">
+                  <span className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase ${
+                    u.role === 'Admin' ? 'bg-purple-50 text-purple-600' : 'bg-green-50 text-green-600'
+                  }`}>
+                    {u.role}
+                  </span>
+                </td>
+                <td className="p-4 text-gray-500">{u.assigned_subjects || '—'}</td>
+                <td className="p-4">
+                   <div className="flex gap-4 text-gray-400">
+                     <button className="hover:text-indigo-600">✎</button>
+                     <button className="hover:text-red-500">🗑</button>
+                   </div>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
   );
 };
-
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F9FAFB' },
-  userCard: { backgroundColor: '#FFF', padding: 15, borderRadius: 12, marginBottom: 10, flexDirection: 'row', alignItems: 'center' },
-  textContainer: { flex: 1, marginLeft: 15 },
-  name: { fontSize: 16, fontWeight: '700' },
-  role: { fontSize: 12, color: '#6B7280' }
-});
 
 export default Users;

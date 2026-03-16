@@ -1,56 +1,109 @@
-import React from 'react';
-import { View, Text, StyleSheet, ScrollView, SafeAreaView, TouchableOpacity } from 'react-native';
-import { MaterialCommunityIcons } from "@expo/vector-icons";
+import React, { useEffect, useState } from 'react';
+import { supabase } from '../lib/supabase';
+import AddStudentModal from '../components/AddStudentModal';
+import DeleteModal from '../components/DeleteModal';
 
-// Component name updated to 'Students' to match AppNavigator import
-const Students = ({ navigation }) => {
+const Students = () => {
+  const [students, setStudents] = useState([]);
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [deleteConfig, setDeleteConfig] = useState({ open: false, id: null, name: '' });
+
+  // Initial fetch
+  useEffect(() => {
+    fetchStudents();
+  }, []);
+
+  const fetchStudents = async () => {
+    const { data, error } = await supabase
+      .from('students')
+      .select('*, classes(name)');
+    
+    if (error) console.error("Error fetching students:", error);
+    else setStudents(data || []);
+  };
+
+  const handleDelete = async () => {
+    const { error } = await supabase
+      .from('students')
+      .delete()
+      .eq('id', deleteConfig.id);
+
+    if (!error) {
+      setDeleteConfig({ open: false, id: null, name: '' });
+      fetchStudents(); // Refresh data after delete
+    }
+  };
+
   return (
-    <SafeAreaView style={styles.container}>
-      <ScrollView contentContainerStyle={styles.content}>
-        <View style={styles.header}>
-          <Text style={styles.title}>Student Management</Text>
-          <Text style={styles.subtitle}>Manage enrollment and academic records</Text>
-        </View>
+    <div className="p-8 bg-gray-50 min-h-screen">
+      <div className="flex justify-between items-center mb-6">
+        <div>
+          <h1 className="text-3xl font-bold text-gray-800">Student Management</h1>
+          <p className="text-gray-500">Manage student records and information</p>
+        </div>
+        <button 
+          onClick={() => setIsAddModalOpen(true)}
+          className="bg-indigo-600 text-white px-6 py-2 rounded-lg font-bold shadow-lg shadow-indigo-100 hover:bg-indigo-700 transition"
+        >
+          + Add Student
+        </button>
+      </div>
 
-        <View style={styles.card}>
-          <View style={styles.userInfo}>
-            <MaterialCommunityIcons name="account-circle" size={40} color="#2563EB" />
-            <View style={{ marginLeft: 15 }}>
-              <Text style={styles.userName}>John Doe</Text>
-              <Text style={styles.userSub}>Grade 10 - Computer Science</Text>
-            </View>
-          </View>
-          <TouchableOpacity style={styles.viewButton}>
-            <Text style={styles.buttonText}>View Profile</Text>
-          </TouchableOpacity>
-        </View>
-      </ScrollView>
-    </SafeAreaView>
+      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+        <table className="w-full text-left">
+          <thead className="text-xs text-gray-400 uppercase bg-gray-50 font-bold">
+            <tr>
+              <th className="p-4">Student</th>
+              <th className="p-4">Class</th>
+              <th className="p-4">Actions</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-gray-100">
+            {students.map((student) => (
+              <tr key={student.id} className="text-sm hover:bg-gray-50">
+                <td className="p-4 flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center font-bold text-xs uppercase">
+                    {student.full_name.substring(0, 2)}
+                  </div>
+                  <span className="font-bold text-gray-700">{student.full_name}</span>
+                </td>
+                <td className="p-4">
+                  <span className="bg-blue-50 text-blue-600 px-3 py-1 rounded-full text-xs font-bold">
+                    {student.classes?.name || 'Unassigned'}
+                  </span>
+                </td>
+                <td className="p-4">
+                  <div className="flex gap-4">
+                    <button className="text-gray-400 hover:text-indigo-600">✎</button>
+                    <button 
+                      onClick={() => setDeleteConfig({ open: true, id: student.id, name: student.full_name })}
+                      className="text-red-300 hover:text-red-500"
+                    >
+                      🗑
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      {/* Logic to keep data synced: onRefresh calls fetchStudents */}
+      <AddStudentModal 
+        isOpen={isAddModalOpen} 
+        onClose={() => setIsAddModalOpen(false)} 
+        onRefresh={fetchStudents} 
+      />
+
+      <DeleteModal 
+        isOpen={deleteConfig.open} 
+        onClose={() => setDeleteConfig({ open: false, id: null, name: '' })} 
+        onConfirm={handleDelete}
+        itemName={deleteConfig.name}
+      />
+    </div>
   );
 };
-
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F9FAFB' },
-  content: { padding: 20 },
-  header: { marginBottom: 25 },
-  title: { fontSize: 28, fontWeight: '800', color: '#111827' },
-  subtitle: { fontSize: 14, color: '#6B7280', marginTop: 4 },
-  card: {
-    backgroundColor: '#FFF',
-    borderRadius: 12,
-    padding: 20,
-    marginBottom: 15,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    elevation: 3,
-    shadowOpacity: 0.1,
-  },
-  userInfo: { flexDirection: 'row', alignItems: 'center' },
-  userName: { fontSize: 16, fontWeight: '700', color: '#1F2937' },
-  userSub: { fontSize: 12, color: '#6B7280' },
-  viewButton: { backgroundColor: '#EFF6FF', padding: 8, borderRadius: 6 },
-  buttonText: { color: '#2563EB', fontWeight: '600', fontSize: 12 }
-});
 
 export default Students;

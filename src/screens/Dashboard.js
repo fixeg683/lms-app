@@ -1,73 +1,97 @@
-import React from 'react';
-import { View, Text, StyleSheet, ScrollView, Dimensions } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { supabase } from '../lib/supabase';
 
-const Dashboard = ({ route }) => {
-  const currentTab = route?.name || 'Dashboard';
+const Dashboard = () => {
+  const [stats, setStats] = useState({
+    totalStudents: 0,
+    totalSubjects: 0,
+    gradesEntered: 0,
+    averageScore: 0
+  });
 
-  const renderContent = () => {
-    switch (currentTab) {
-      case 'MyGrades':
-        return <ManagementView title="My Academic Performance" description="View your semester results and GPA breakdown." icon="🎓" />;
-      case 'Reports':
-        return <ManagementView title="Activity Reports" description="Download your attendance and progress summaries." icon="📊" />;
-      default:
-        return (
-          <View style={styles.statsGrid}>
-            <StatCard title="Enrolled Courses" value="6" color="#2563EB" icon="📚" />
-            <StatCard title="Attendance" value="94%" color="#10B981" icon="📅" />
-            <StatCard title="Assignments" value="3" color="#F59E0B" icon="✍️" />
-          </View>
-        );
-    }
+  useEffect(() => {
+    fetchDashboardData();
+  }, []);
+
+  const fetchDashboardData = async () => {
+    const { data: students } = await supabase.from('students').select('id', { count: 'exact' });
+    const { data: subjects } = await supabase.from('subjects').select('id', { count: 'exact' });
+    const { data: grades } = await supabase.from('grades').select('score');
+
+    const avg = grades?.length > 0 
+      ? (grades.reduce((acc, curr) => acc + curr.score, 0) / grades.length).toFixed(1) 
+      : 0;
+
+    setStats({
+      totalStudents: students?.length || 0,
+      totalSubjects: subjects?.length || 0,
+      gradesEntered: grades?.length || 0,
+      averageScore: avg
+    });
   };
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.scrollContent}>
-      <View style={styles.header}>
-        <Text style={styles.welcomeText}>{currentTab === 'MyGrades' ? 'My Grades' : currentTab}</Text>
-        <Text style={styles.subText}>EduManage Pro | Personal Learning Portal</Text>
-      </View>
-      {renderContent()}
-    </ScrollView>
+    <div className="p-8 bg-gray-50 min-h-screen">
+      <h1 className="text-3xl font-bold text-gray-800">Dashboard</h1>
+      <p className="text-gray-500 mb-8">Overview of your exam management system</p>
+
+      {/* Stats Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+        {[
+          { label: 'Total Students', value: stats.totalStudents, icon: '👥', color: 'bg-blue-50' },
+          { label: 'Total Subjects', value: stats.totalSubjects, icon: '📚', color: 'bg-purple-50' },
+          { label: 'Grades Entered', value: stats.gradesEntered, icon: '✅', color: 'bg-green-50' },
+          { label: 'Average Score', value: `${stats.averageScore}%`, icon: '🏆', color: 'bg-yellow-50' },
+        ].map((stat, i) => (
+          <div key={i} className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex items-center justify-between">
+            <div>
+              <p className="text-sm text-gray-500 font-medium">{stat.label}</p>
+              <h3 className="text-2xl font-bold mt-1">{stat.value}</h3>
+            </div>
+            <span className={`text-2xl p-3 rounded-xl ${stat.color}`}>{stat.icon}</span>
+          </div>
+        ))}
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        {/* Subject Averages Section (Simplified for match) */}
+        <div className="lg:col-span-2 bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+          <h3 className="font-bold text-gray-800 mb-4">Subject Averages</h3>
+          <div className="space-y-4">
+             {/* Progress bars matching your screenshot style */}
+             <div>
+                <div className="flex justify-between text-sm mb-1">
+                    <span>Mathematics</span>
+                    <span className="font-bold">69.8</span>
+                </div>
+                <div className="w-full bg-gray-100 h-2 rounded-full">
+                    <div className="bg-blue-500 h-2 rounded-full" style={{width: '69.8%'}}></div>
+                </div>
+             </div>
+          </div>
+        </div>
+
+        {/* Top Performers Section */}
+        <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+          <h3 className="font-bold text-gray-800 mb-4">Top Performers</h3>
+          <div className="space-y-6">
+            {['sammy', 'viola faith', 'rowlands onyango'].map((name, i) => (
+              <div key={i} className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                    <span className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold ${i === 0 ? 'bg-yellow-400 text-white' : 'bg-gray-200'}`}>{i+1}</span>
+                    <div>
+                        <p className="text-sm font-bold capitalize">{name}</p>
+                        <p className="text-xs text-gray-400">grade 8 red</p>
+                    </div>
+                </div>
+                <span className="bg-green-100 text-green-700 text-[10px] font-bold px-2 py-1 rounded">EE 2</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
   );
 };
-
-const ManagementView = ({ title, description, icon }) => (
-  <View style={styles.sectionCard}>
-    <View style={styles.sectionHeaderRow}>
-      <Text style={styles.sectionTitle}>{title}</Text>
-      <Text style={{ fontSize: 24 }}>{icon}</Text>
-    </View>
-    <Text style={styles.placeholderText}>{description}</Text>
-    <View style={styles.tablePlaceholder}>
-      <Text style={{ color: '#9CA3AF', fontStyle: 'italic', textAlign: 'center' }}>No recent records found in this category.</Text>
-    </View>
-  </View>
-);
-
-const StatCard = ({ title, value, color, icon }) => (
-  <View style={[styles.card, { borderLeftColor: color, borderLeftWidth: 5 }]}>
-    <View><Text style={styles.cardValue}>{value}</Text><Text style={styles.cardTitle}>{title}</Text></View>
-    <Text style={styles.cardIcon}>{icon}</Text>
-  </View>
-);
-
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F9FAFB' },
-  scrollContent: { padding: 24 },
-  header: { marginBottom: 24 },
-  welcomeText: { fontSize: 26, fontWeight: '800', color: '#111827' },
-  subText: { fontSize: 13, color: '#6B7280' },
-  statsGrid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between' },
-  card: { backgroundColor: '#FFF', width: Dimensions.get('window').width > 768 ? '31%' : '100%', padding: 20, borderRadius: 12, marginBottom: 16, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', elevation: 3 },
-  cardValue: { fontSize: 22, fontWeight: '700' },
-  cardTitle: { fontSize: 12, color: '#6B7280' },
-  cardIcon: { fontSize: 24 },
-  sectionCard: { backgroundColor: '#FFF', borderRadius: 12, padding: 30, elevation: 3 },
-  sectionHeaderRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 10 },
-  sectionTitle: { fontSize: 20, fontWeight: '700' },
-  placeholderText: { color: '#6B7280', marginBottom: 20 },
-  tablePlaceholder: { padding: 40, borderStyle: 'dashed', borderWidth: 1, borderColor: '#D1D5DB', borderRadius: 8, alignItems: 'center' }
-});
 
 export default Dashboard;

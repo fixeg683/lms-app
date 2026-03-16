@@ -1,183 +1,77 @@
-import React, { useState, useEffect } from 'react';
-import { 
-  View, Text, StyleSheet, ScrollView, TouchableOpacity, 
-  SafeAreaView, Modal, TextInput, Alert, ActivityIndicator 
-} from 'react-native';
-import { MaterialCommunityIcons } from "@expo/vector-icons";
-import { supabase } from '../lib/supabase'; // Adjust path if necessary
+import React, { useEffect, useState } from 'react';
+import { supabase } from '../lib/supabase';
+import CreateClassModal from '../components/CreateClassModal';
+import DeleteModal from '../components/DeleteModal';
 
 const Classes = () => {
-  const [modalVisible, setModalVisible] = useState(false);
-  const [loading, setLoading] = useState(false);
   const [classes, setClasses] = useState([]);
+  const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const [deleteConfig, setDeleteConfig] = useState({ open: false, id: null, name: '' });
 
-  // Form State
-  const [subject, setSubject] = useState('');
-  const [room, setRoom] = useState('');
-  const [teacher, setTeacher] = useState('');
-  const [time, setTime] = useState('');
-
-  // 1. Fetch classes from Supabase on load
-  useEffect(() => {
-    fetchClasses();
-  }, []);
+  useEffect(() => { fetchClasses(); }, []);
 
   const fetchClasses = async () => {
-    const { data, error } = await supabase
-      .from('classes')
-      .select('*')
-      .order('created_at', { ascending: false });
-    
-    if (error) console.log('Error fetching:', error);
-    else setClasses(data || []);
+    const { data } = await supabase.from('classes').select('*, students(count)');
+    setClasses(data || []);
   };
 
-  // 2. Handle Save to Supabase
-  const handleAddClass = async () => {
-    if (!subject || !room || !time) {
-      Alert.alert("Error", "Please fill in all required fields.");
-      return;
+  const handleDelete = async () => {
+    const { error } = await supabase.from('classes').delete().eq('id', deleteConfig.id);
+    if (!error) {
+      setDeleteConfig({ open: false, id: null, name: '' });
+      fetchClasses();
     }
-
-    setLoading(true);
-    const { error } = await supabase
-      .from('classes')
-      .insert([{ 
-        subject_name: subject, 
-        room_number: room, 
-        instructor_name: teacher, 
-        class_time: time 
-      }]);
-
-    setLoading(false);
-    if (error) {
-      Alert.alert("Upload Failed", error.message);
-    } else {
-      setModalVisible(false);
-      clearForm();
-      fetchClasses(); // Refresh list
-    }
-  };
-
-  const clearForm = () => {
-    setSubject('');
-    setRoom('');
-    setTeacher('');
-    setTime('');
   };
 
   return (
-    <SafeAreaView style={styles.container}>
-      <ScrollView contentContainerStyle={styles.scrollContent}>
-        <View style={styles.headerRow}>
-          <Text style={styles.headerTitle}>Class Schedule</Text>
-          <TouchableOpacity 
-            style={styles.addBtn} 
-            onPress={() => setModalVisible(true)}
-          >
-            <MaterialCommunityIcons name="plus" size={24} color="#FFF" />
-          </TouchableOpacity>
-        </View>
+    <div className="p-8 bg-gray-50 min-h-screen">
+      <div className="flex justify-between items-center mb-8">
+        <div>
+          <h1 className="text-3xl font-bold text-gray-800">Class Management</h1>
+          <p className="text-gray-500">Manage classes and student rosters</p>
+        </div>
+        <button 
+          onClick={() => setIsCreateOpen(true)}
+          className="bg-indigo-600 text-white px-6 py-2 rounded-lg font-bold shadow-lg shadow-indigo-200 hover:bg-indigo-700 transition"
+        >
+          + Create New Class
+        </button>
+      </div>
 
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {classes.map((item) => (
-          <View key={item.id} style={styles.classCard}>
-            <View style={[styles.indicator, { backgroundColor: '#2563EB' }]} />
-            <View style={styles.cardMain}>
-              <Text style={styles.timeText}>{item.class_time}</Text>
-              <Text style={styles.subjectText}>{item.subject_name}</Text>
-              <View style={styles.footerRow}>
-                <Text style={styles.infoText}>📍 {item.room_number}</Text>
-                <Text style={styles.infoText}>👤 {item.instructor_name}</Text>
-              </View>
-            </View>
-          </View>
+          <div key={item.id} className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 relative">
+            <div className="absolute top-4 right-4 flex gap-2">
+              <button className="p-2 text-gray-400 hover:text-indigo-600 bg-gray-50 rounded-lg">✎</button>
+              <button 
+                onClick={() => setDeleteConfig({ open: true, id: item.id, name: item.name })}
+                className="p-2 text-red-400 hover:bg-red-50 bg-red-50/50 rounded-lg"
+              >
+                🗑
+              </button>
+            </div>
+            {/* Card Content... */}
+            <div className="w-12 h-12 bg-indigo-50 rounded-xl flex items-center justify-center mb-4 text-indigo-600">∩</div>
+            <h3 className="text-xl font-bold text-gray-800 capitalize">{item.name}</h3>
+            <p className="text-sm text-gray-400 mb-6">Academic Year: {item.academic_year}</p>
+            <div className="flex justify-between items-center pt-4 border-t border-gray-50">
+               <span className="text-sm text-gray-500 font-medium">{item.students[0]?.count || 0} students</span>
+               <button className="bg-gray-50 text-gray-700 px-4 py-1.5 rounded-lg text-sm font-bold border border-gray-200">Manage Roster</button>
+            </div>
+          </div>
         ))}
-      </ScrollView>
+      </div>
 
-      {/* --- ADD CLASS MODAL --- */}
-      <Modal
-        animationType="slide"
-        transparent={true}
-        visible={modalVisible}
-        onRequestClose={() => setModalVisible(false)}
-      >
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalView}>
-            <Text style={styles.modalTitle}>Add New Class</Text>
-
-            <TextInput
-              style={styles.input}
-              placeholder="Subject Name (e.g. Math 101)"
-              value={subject}
-              onChangeText={setSubject}
-            />
-            <TextInput
-              style={styles.input}
-              placeholder="Time (e.g. 08:00 AM - 10:00 AM)"
-              value={time}
-              onChangeText={setTime}
-            />
-            <TextInput
-              style={styles.input}
-              placeholder="Room Number"
-              value={room}
-              onChangeText={setRoom}
-            />
-            <TextInput
-              style={styles.input}
-              placeholder="Instructor Name"
-              value={teacher}
-              onChangeText={setTeacher}
-            />
-
-            <View style={styles.modalButtons}>
-              <TouchableOpacity 
-                style={[styles.btn, styles.cancelBtn]} 
-                onPress={() => setModalVisible(false)}
-              >
-                <Text style={styles.cancelBtnText}>Cancel</Text>
-              </TouchableOpacity>
-              
-              <TouchableOpacity 
-                style={[styles.btn, styles.saveBtn]} 
-                onPress={handleAddClass}
-                disabled={loading}
-              >
-                {loading ? <ActivityIndicator color="#FFF" /> : <Text style={styles.saveBtnText}>Save Class</Text>}
-              </TouchableOpacity>
-            </View>
-          </View>
-        </View>
-      </Modal>
-    </SafeAreaView>
+      {/* Modals */}
+      <CreateClassModal isOpen={isCreateOpen} onClose={() => setIsCreateOpen(false)} onRefresh={fetchClasses} />
+      <DeleteModal 
+        isOpen={deleteConfig.open} 
+        onClose={() => setDeleteConfig({ open: false, id: null, name: '' })} 
+        onConfirm={handleDelete}
+        itemName={deleteConfig.name}
+      />
+    </div>
   );
 };
-
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F9FAFB' },
-  scrollContent: { padding: 20 },
-  headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 },
-  headerTitle: { fontSize: 24, fontWeight: '800', color: '#111827' },
-  addBtn: { backgroundColor: '#2563EB', width: 45, height: 45, borderRadius: 22.5, justifyContent: 'center', alignItems: 'center', elevation: 4 },
-  classCard: { backgroundColor: '#FFF', borderRadius: 12, marginBottom: 12, flexDirection: 'row', overflow: 'hidden', elevation: 2 },
-  indicator: { width: 6 },
-  cardMain: { padding: 15, flex: 1 },
-  timeText: { fontSize: 12, color: '#6B7280', marginBottom: 4 },
-  subjectText: { fontSize: 18, fontWeight: '700', color: '#1F2937' },
-  footerRow: { flexDirection: 'row', marginTop: 10 },
-  infoText: { marginRight: 15, fontSize: 13, color: '#4B5563' },
-  
-  // Modal Styles
-  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center' },
-  modalView: { width: '90%', maxWidth: 400, backgroundColor: 'white', borderRadius: 20, padding: 25, shadowOpacity: 0.25, elevation: 5 },
-  modalTitle: { fontSize: 20, fontWeight: '700', marginBottom: 20, textAlign: 'center' },
-  input: { width: '100%', height: 50, borderWidth: 1, borderColor: '#E5E7EB', borderRadius: 10, paddingHorizontal: 15, marginBottom: 15, backgroundColor: '#FAFAFA' },
-  modalButtons: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 10 },
-  btn: { flex: 1, height: 50, borderRadius: 10, justifyContent: 'center', alignItems: 'center', marginHorizontal: 5 },
-  cancelBtn: { backgroundColor: '#F3F4F6' },
-  saveBtn: { backgroundColor: '#2563EB' },
-  cancelBtnText: { color: '#4B5563', fontWeight: '600' },
-  saveBtnText: { color: '#FFF', fontWeight: '600' }
-});
 
 export default Classes;

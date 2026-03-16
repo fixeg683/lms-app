@@ -1,100 +1,107 @@
 import React from 'react';
-import { View, Text, StyleSheet, ScrollView, Dimensions } from 'react-native';
 
-const AdminDashboard = ({ route }) => {
-  const currentTab = route.name;
-
-  const renderContent = () => {
-    switch (currentTab) {
-      case 'Students':
-        return <ManagementView title="Student Management" description="View and edit student enrollment records." icon="👨‍🎓" />;
-      case 'Subjects':
-        return <ManagementView title="Curriculum / Subjects" description="Manage course subjects and syllabi." icon="📚" />;
-      case 'Grades':
-        return <ManagementView title="Grade Center" description="Input and verify student marks." icon="📝" />;
-      case 'Users':
-        return <ManagementView title="System Users" description="Manage accounts for Teachers and Admins." icon="🔐" />;
-      case 'Classes':
-        return <ManagementView title="Classes & Schedules" description="Assign teachers to active classrooms." icon="🏫" />;
-      case 'ExamInstances':
-        return <ManagementView title="Exam Instances" description="Schedule and monitor active examinations." icon="⏳" />;
-      case 'Corrections':
-        return <ManagementView title="Corrections" description="Review and adjust submitted examination papers." icon="✍️" />;
-      case 'Reports':
-        return <ManagementView title="Academic Reports" description="Generate performance analytics and CSV exports." icon="📊" />;
-      default:
-        // Main Dashboard View
-        return (
-          <View style={styles.statsGrid}>
-            <StatCard title="Total Students" value="1,240" color="#2563EB" icon="👥" />
-            <StatCard title="Active Courses" value="48" color="#10B981" icon="📚" />
-            <StatCard title="Reports Pending" value="7" color="#F59E0B" icon="📑" />
-          </View>
-        );
-    }
-  };
-
+const AdminDashboard = () => {
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.scrollContent}>
-      <View style={styles.header}>
-        <Text style={styles.welcomeText}>Admin: {currentTab === 'ExamInstances' ? 'Exam Instances' : currentTab}</Text>
-        <Text style={styles.subText}>EduManage Pro | Secure Management Panel</Text>
-      </View>
-      {renderContent()}
-    </ScrollView>
+    <div className="p-8 bg-gray-50 min-h-screen">
+      <h1 className="text-3xl font-bold text-gray-800">Dashboard</h1>
+      <p className="text-gray-500 mb-8">Overview of your exam management system</p>
+
+      {/* Summary Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+        <Card title="Total Students" value="4" icon="👥" color="text-blue-600" />
+        <Card title="Total Subjects" value="8" icon="🟣" color="text-purple-600" />
+        <Card title="Grades Entered" value="6" icon="🟢" color="text-green-600" />
+        <Card title="Average Score" value="75%" icon="🟡" color="text-yellow-500" />
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        {/* Grade Distribution - Matches Left Panel in Screenshot */}
+        <div className="lg:col-span-1 bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+          <h3 className="font-bold text-gray-800 mb-6">Grade Distribution</h3>
+          <div className="space-y-6">
+            <DistItem label="Approaching (AE)" count="0" percent="0" color="bg-orange-400" />
+            <DistItem label="Below (BE)" count="0" percent="0" color="bg-red-400" />
+            <DistItem label="Exceeding (EE)" count="4" percent="67" color="bg-green-500" />
+            <DistItem label="Meeting (ME)" count="2" percent="33" color="bg-blue-500" />
+          </div>
+        </div>
+
+        {/* Subject Averages - Middle Panel */}
+        <div className="lg:col-span-1 bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+          <h3 className="font-bold text-gray-800 mb-6">Subject Averages</h3>
+          <div className="space-y-4">
+             <AvgBar label="Mathematics" score="69.8" color="bg-blue-500" count="4" />
+             <AvgBar label="Kiswahili" score="85.5" color="bg-green-500" count="2" />
+             {['English', 'Integrated Science'].map(sub => (
+               <AvgBar key={sub} label={sub} score="0" color="bg-red-400" count="0" />
+             ))}
+          </div>
+        </div>
+
+        {/* Top Performers - Right Panel */}
+        <div className="lg:col-span-1 bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+          <h3 className="font-bold text-gray-800 mb-6">Top Performers</h3>
+          <div className="space-y-4">
+            <Performer rank="1" name="sammy" grade="EE 2" color="bg-yellow-400" />
+            <Performer rank="2" name="viola faith" grade="EE 2" color="bg-gray-300" />
+            <Performer rank="3" name="rowlands onyango" grade="EE 2" color="bg-orange-300" />
+            <Performer rank="4" name="ian" grade="ME 2" color="bg-blue-100" />
+          </div>
+        </div>
+      </div>
+    </div>
   );
 };
 
-const ManagementView = ({ title, description, icon }) => (
-  <View style={styles.sectionCard}>
-    <View style={styles.sectionHeaderRow}>
-      <Text style={styles.sectionTitle}>{title}</Text>
-      <Text style={{ fontSize: 24 }}>{icon}</Text>
-    </View>
-    <Text style={styles.placeholderText}>{description}</Text>
-    <View style={styles.tablePlaceholder}>
-      <Text style={{ color: '#9CA3AF', fontStyle: 'italic' }}>No data records found. Connect Supabase to fetch live data.</Text>
-    </View>
-  </View>
+// Sub-components for cleaner code
+const Card = ({ title, value, icon, color }) => (
+  <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex items-center justify-between">
+    <div>
+      <p className="text-xs font-bold text-gray-400 mb-1">{title}</p>
+      <h2 className="text-3xl font-extrabold text-gray-800">{value}</h2>
+    </div>
+    <div className={`text-2xl p-3 rounded-xl bg-gray-50 ${color}`}>{icon}</div>
+  </div>
 );
 
-const StatCard = ({ title, value, color, icon }) => (
-  <View style={[styles.card, { borderLeftColor: color, borderLeftWidth: 5 }]}>
-    <View>
-      <Text style={styles.cardValue}>{value}</Text>
-      <Text style={styles.cardTitle}>{title}</Text>
-    </View>
-    <Text style={styles.cardIcon}>{icon}</Text>
-  </View>
+const DistItem = ({ label, count, percent, color }) => (
+  <div>
+    <div className="flex justify-between text-xs font-bold mb-2">
+      <span className="text-gray-400">{label}</span>
+      <span className="text-gray-400">{count} ({percent}%)</span>
+    </div>
+    <div className="w-full bg-gray-50 h-2 rounded-full overflow-hidden">
+      <div className={`${color} h-full`} style={{ width: `${percent}%` }}></div>
+    </div>
+  </div>
 );
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F9FAFB' },
-  scrollContent: { padding: 24 },
-  header: { marginBottom: 24 },
-  welcomeText: { fontSize: 26, fontWeight: '800', color: '#111827' },
-  subText: { fontSize: 13, color: '#6B7280' },
-  statsGrid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between' },
-  card: {
-    backgroundColor: '#FFF',
-    width: Dimensions.get('window').width > 768 ? '31%' : '100%',
-    padding: 20,
-    borderRadius: 12,
-    marginBottom: 16,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    shadowOpacity: 0.05,
-    elevation: 3,
-  },
-  cardValue: { fontSize: 22, fontWeight: '700' },
-  cardTitle: { fontSize: 12, color: '#6B7280' },
-  cardIcon: { fontSize: 24 },
-  sectionCard: { backgroundColor: '#FFF', borderRadius: 12, padding: 30, elevation: 3 },
-  sectionHeaderRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 },
-  sectionTitle: { fontSize: 20, fontWeight: '700' },
-  placeholderText: { color: '#6B7280', marginBottom: 20 },
-  tablePlaceholder: { padding: 40, borderStyle: 'dashed', borderWidth: 1, borderColor: '#D1D5DB', borderRadius: 8, alignItems: 'center' }
-});
+const AvgBar = ({ label, score, color, count }) => (
+  <div className="mb-4">
+    <div className="flex justify-between text-xs mb-1 font-bold text-gray-500">
+      <span>{label}</span>
+      <span>{count} entries</span>
+    </div>
+    <div className="flex items-center gap-3">
+       <div className="flex-1 bg-gray-50 h-1.5 rounded-full overflow-hidden">
+         <div className={`${color} h-full`} style={{ width: `${score}%` }}></div>
+       </div>
+       <span className={`text-xs font-bold ${score > 0 ? 'text-blue-600' : 'text-red-400'}`}>{score}</span>
+    </div>
+  </div>
+);
+
+const Performer = ({ rank, name, grade, color }) => (
+  <div className="flex items-center justify-between py-2">
+    <div className="flex items-center gap-3">
+      <span className={`w-7 h-7 ${color} text-white rounded-full flex items-center justify-center text-[10px] font-bold shadow-sm`}>{rank}</span>
+      <div>
+        <p className="text-sm font-bold text-gray-800 capitalize">{name}</p>
+        <p className="text-[10px] text-gray-400 uppercase">grade 8 red</p>
+      </div>
+    </div>
+    <span className="bg-green-100 text-green-700 text-[10px] font-bold px-2 py-1 rounded-md">{grade}</span>
+  </div>
+);
 
 export default AdminDashboard;
