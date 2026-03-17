@@ -6,6 +6,7 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   Alert,
+  Platform, // Added for Web vs Mobile detection
   ScrollView
 } from 'react-native';
 import { Picker } from '@react-native-picker/picker';
@@ -47,7 +48,7 @@ const Reports = () => {
 
     setLoading(true);
     try {
-      // THE FIX: Nested selection to reach Classes through the Students table
+      // Nested selection to reach Classes through the Students table
       let query = supabase.from('grades').select(`
         score,
         subjects (name),
@@ -57,7 +58,6 @@ const Reports = () => {
         )
       `);
 
-      // THE FIX: Correct filtering logic for nested relationships
       if (activeTab === 'student') {
         query = query.eq('student_id', selectedId);
       } else if (activeTab === 'class') {
@@ -67,7 +67,6 @@ const Reports = () => {
       }
 
       const { data: reportData, error } = await query;
-      
       if (error) throw error;
 
       if (!reportData || reportData.length === 0) {
@@ -76,7 +75,6 @@ const Reports = () => {
         return;
       }
 
-      // Build HTML Template with the new data structure
       const htmlContent = `
         <html>
           <head>
@@ -96,7 +94,7 @@ const Reports = () => {
             <div class="header">
               <h1>EduManage Pro Report</h1>
               <p class="meta">${activeTab.toUpperCase()} Performance Summary</p>
-              <p class="meta">Generated: ${new Date().toLocaleDateString()} ${new Date().toLocaleTimeString()}</p>
+              <p class="meta">Generated: ${new Date().toLocaleDateString()}</p>
             </div>
             <table>
               <thead>
@@ -118,20 +116,23 @@ const Reports = () => {
                 `).join('')}
               </tbody>
             </table>
-            <div class="footer">
-              This is a system-generated document from EduManage Pro Portal.
-            </div>
           </body>
         </html>
       `;
 
-      // Generate PDF and open Share Dialog
-      const { uri } = await Print.printToFileAsync({ html: htmlContent });
-      await Sharing.shareAsync(uri, { UTI: '.pdf', mimeType: 'application/pdf' });
+      // WEB-SAFE LOGIC
+      if (Platform.OS === 'web') {
+        // This opens the browser print window where you can select "Save as PDF"
+        await Print.printAsync({ html: htmlContent });
+      } else {
+        // Mobile sharing logic
+        const { uri } = await Print.printToFileAsync({ html: htmlContent });
+        await Sharing.shareAsync(uri, { UTI: '.pdf', mimeType: 'application/pdf' });
+      }
       
     } catch (err) {
       console.error("PDF Error:", err);
-      Alert.alert("Error", "Failed to generate report. Check your network connection.");
+      Alert.alert("Error", "Failed to generate report.");
     } finally {
       setLoading(false);
     }
@@ -142,7 +143,6 @@ const Reports = () => {
       <Text style={styles.title}>Reports</Text>
       <Text style={styles.subtitle}>Select a category and target to generate a performance PDF.</Text>
 
-      {/* Tabs */}
       <View style={styles.tabs}>
         {tabs.map((tab) => (
           <TouchableOpacity
@@ -184,9 +184,7 @@ const Reports = () => {
           {loading ? (
             <ActivityIndicator color="#fff" />
           ) : (
-            <View style={styles.buttonContent}>
-              <Text style={styles.buttonText}>Generate PDF Report</Text>
-            </View>
+            <Text style={styles.buttonText}>Generate PDF Report</Text>
           )}
         </TouchableOpacity>
       </View>
@@ -200,53 +198,17 @@ const styles = StyleSheet.create({
   container: { flex: 1, padding: 20, backgroundColor: '#F9FAFB' },
   title: { fontSize: 28, fontWeight: 'bold', color: '#111827' },
   subtitle: { color: '#6B7280', marginBottom: 25, fontSize: 14 },
-  tabs: { 
-    flexDirection: 'row', 
-    backgroundColor: '#fff', 
-    borderRadius: 12, 
-    padding: 4, 
-    marginBottom: 20, 
-    borderWidth: 1, 
-    borderColor: '#E5E7EB' 
-  },
+  tabs: { flexDirection: 'row', backgroundColor: '#fff', borderRadius: 12, padding: 4, marginBottom: 20, borderWidth: 1, borderColor: '#E5E7EB' },
   tab: { flex: 1, paddingVertical: 12, alignItems: 'center', borderRadius: 10 },
   activeTab: { backgroundColor: '#EEF2FF' },
   tabText: { fontSize: 11, fontWeight: 'bold' },
   activeText: { color: '#4F46E5' },
   inactiveText: { color: '#9CA3AF' },
-  card: { 
-    backgroundColor: '#fff', 
-    padding: 24, 
-    borderRadius: 20, 
-    elevation: 3, 
-    borderWidth: 1, 
-    borderColor: '#F3F4F6',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 10,
-  },
+  card: { backgroundColor: '#fff', padding: 24, borderRadius: 20, borderWidth: 1, borderColor: '#F3F4F6' },
   label: { fontSize: 12, fontWeight: 'bold', color: '#4B5563', marginBottom: 10, textTransform: 'uppercase' },
-  pickerContainer: { 
-    backgroundColor: '#F9FAFB', 
-    borderRadius: 12, 
-    borderWidth: 1, 
-    borderColor: '#E5E7EB', 
-    marginBottom: 24,
-    overflow: 'hidden'
-  },
+  pickerContainer: { backgroundColor: '#F9FAFB', borderRadius: 12, borderWidth: 1, borderColor: '#E5E7EB', marginBottom: 24, overflow: 'hidden' },
   picker: { height: 50, width: '100%' },
-  downloadButton: { 
-    backgroundColor: '#4F46E5', 
-    padding: 16, 
-    borderRadius: 12, 
-    alignItems: 'center',
-    shadowColor: '#4F46E5',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 8,
-  },
-  disabledButton: { backgroundColor: '#9CA3AF', shadowOpacity: 0 },
-  buttonText: { color: '#fff', fontWeight: 'bold', fontSize: 16 },
-  buttonContent: { flexDirection: 'row', alignItems: 'center' }
+  downloadButton: { backgroundColor: '#4F46E5', padding: 16, borderRadius: 12, alignItems: 'center' },
+  disabledButton: { backgroundColor: '#9CA3AF' },
+  buttonText: { color: '#fff', fontWeight: 'bold', fontSize: 16 }
 });
