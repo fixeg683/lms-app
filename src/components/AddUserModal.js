@@ -6,28 +6,57 @@ import {
   TextInput,
   TouchableOpacity,
   StyleSheet,
+  Alert
 } from 'react-native';
 import { supabase } from '../lib/supabase';
+
+// ✅ UUID generator (simple & safe)
+const generateUUID = () => {
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+    const r = Math.random() * 16 | 0;
+    const v = c === 'x' ? r : (r & 0x3 | 0x8);
+    return v.toString(16);
+  });
+};
 
 const AddUserModal = ({ isOpen, onClose, onRefresh }) => {
   const [username, setUsername] = useState('');
   const [role, setRole] = useState('Teacher');
+  const [loading, setLoading] = useState(false);
 
   const handleAdd = async () => {
-    if (!username.trim()) return;
+    if (!username.trim()) {
+      Alert.alert('Validation', 'Username is required');
+      return;
+    }
+
+    setLoading(true);
 
     try {
-      const { error } = await supabase.from('profiles').insert([
-        { username, role },
-      ]);
+      const newUser = {
+        id: generateUUID(), // ✅ FIX: provide id
+        username: username.trim(),
+        role: role.trim() || 'Teacher'
+      };
+
+      const { error } = await supabase
+        .from('profiles')
+        .insert([newUser]);
 
       if (error) throw error;
 
+      // ✅ Reset state
       setUsername('');
+      setRole('Teacher');
+
       onClose?.();
       onRefresh?.();
+
     } catch (error) {
       console.error('Add user error:', error?.message || error);
+      Alert.alert('Error', error.message || 'Failed to add user');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -58,8 +87,10 @@ const AddUserModal = ({ isOpen, onClose, onRefresh }) => {
               <Text style={styles.cancel}>Cancel</Text>
             </TouchableOpacity>
 
-            <TouchableOpacity onPress={handleAdd} style={styles.button}>
-              <Text style={styles.add}>Create User</Text>
+            <TouchableOpacity onPress={handleAdd} style={styles.button} disabled={loading}>
+              <Text style={styles.add}>
+                {loading ? 'Creating...' : 'Create User'}
+              </Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -84,26 +115,24 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
     padding: 24,
     borderRadius: 20,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.1,
-    shadowRadius: 20,
     elevation: 10,
   },
-  title: { fontSize: 20, fontWeight: 'bold', color: '#111827', marginBottom: 20 },
+  title: { fontSize: 20, fontWeight: 'bold', marginBottom: 20 },
   input: {
-    width: '100%',
     backgroundColor: '#F9FAFB',
     borderWidth: 1,
     borderColor: '#F3F4F6',
     padding: 14,
     borderRadius: 12,
     marginBottom: 12,
-    fontSize: 14,
-    color: '#374151',
   },
-  actions: { flexDirection: 'row', justifyContent: 'flex-end', marginTop: 12, gap: 8 },
+  actions: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    marginTop: 12,
+    gap: 8
+  },
   button: { paddingHorizontal: 16, paddingVertical: 10 },
-  cancel: { color: '#6B7280', fontWeight: '600', fontSize: 14 },
-  add: { color: '#4F46E5', fontWeight: 'bold', fontSize: 14 },
+  cancel: { color: '#6B7280', fontWeight: '600' },
+  add: { color: '#4F46E5', fontWeight: 'bold' },
 });
