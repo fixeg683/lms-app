@@ -1,93 +1,102 @@
 import React, { useEffect, useState } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  ScrollView
-} from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
 import { supabase } from '../lib/supabase';
+import AddGradeModal from '../components/AddGradeModal';
+import DeleteModal from '../components/DeleteModal';
 
 const Grades = () => {
   const [grades, setGrades] = useState([]);
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [deleteConfig, setDeleteConfig] = useState({ open: false, id: null, name: '' });
 
-  useEffect(() => {
-    fetchGrades();
-  }, []);
+  useEffect(() => { fetchGrades(); }, []);
 
   const fetchGrades = async () => {
     try {
       const { data, error } = await supabase
         .from('grades')
-        .select(`
-          id, score, status,
-          students (full_name),
-          subjects (name)
-        `);
-
+        .select('*, students(full_name), subjects(name)');
       if (error) throw error;
       setGrades(Array.isArray(data) ? data : []);
-    } catch (err) {
-      console.error('Grades error:', err.message);
+    } catch (error) {
+      console.error('Fetch grades error:', error?.message || error);
       setGrades([]);
     }
   };
 
-  const getRubric = (score = 0) => {
-    if (score >= 80) return { label: 'EE 1', color: '#22C55E' };
-    if (score >= 70) return { label: 'EE 2', color: '#4ADE80' };
-    if (score >= 50) return { label: 'ME 2', color: '#60A5FA' };
-    return { label: 'BE', color: '#F87171' };
+  const handleDelete = async () => {
+    if (!deleteConfig?.id) return;
+    try {
+      const { error } = await supabase.from('grades').delete().eq('id', deleteConfig.id);
+      if (error) throw error;
+      setDeleteConfig({ open: false, id: null, name: '' });
+      fetchGrades();
+    } catch (error) {
+      console.error('Delete error:', error?.message || error);
+    }
   };
 
   return (
-    <ScrollView style={styles.container}>
-      <Text style={styles.title}>Grades</Text>
+    <View style={styles.container}>
+      <View style={styles.header}>
+        <Text style={styles.title}>Grades</Text>
+        <TouchableOpacity style={styles.addButton} onPress={() => setIsAddModalOpen(true)}>
+          <Text style={styles.addText}>+ Add Grade</Text>
+        </TouchableOpacity>
+      </View>
 
-      {grades.map((g) => {
-        const rubric = getRubric(g?.score);
+      <ScrollView style={styles.table}>
+        <View style={styles.tableHeader}>
+          <Text style={[styles.headerText, { flex: 2 }]}>STUDENT</Text>
+          <Text style={[styles.headerText, { flex: 1.5 }]}>SUBJECT</Text>
+          <Text style={[styles.headerText, { flex: 0.8, textAlign: 'center' }]}>SCORE</Text>
+          <Text style={[styles.headerText, { flex: 1, textAlign: 'right' }]}>ACTIONS</Text>
+        </View>
 
-        return (
-          <View key={g?.id} style={styles.card}>
-            <Text style={styles.name}>
-              {g?.students?.full_name || 'Unknown Student'}
+        {grades.length === 0 && <Text style={styles.empty}>No grades found</Text>}
+
+        {grades.map((grade) => (
+          <View key={grade?.id || Math.random()} style={styles.row}>
+            <Text style={[styles.cell, { flex: 2, fontWeight: 'bold' }]}>
+              {String(grade?.students?.full_name || 'Unknown')}
             </Text>
-
-            <Text style={styles.subject}>
-              {g?.subjects?.name || 'Unknown Subject'}
+            <Text style={[styles.cell, { flex: 1.5, color: '#4F46E5' }]}>
+              {String(grade?.subjects?.name || 'N/A')}
             </Text>
-
-            <View style={styles.row}>
-              <Text>Score: {g?.score ?? 0}</Text>
-              <Text style={{ color: rubric.color }}>{rubric.label}</Text>
+            <Text style={[styles.cell, { flex: 0.8, textAlign: 'center', fontWeight: 'bold', color: '#10B981' }]}>
+              {String(grade?.score || 0)}
+            </Text>
+            <View style={[styles.actions, { flex: 1 }]}>
+              <TouchableOpacity><Text style={styles.edit}>✎</Text></TouchableOpacity>
+              <TouchableOpacity onPress={() => setDeleteConfig({ open: true, id: grade?.id, name: `Grade for ${grade?.students?.full_name}` })}>
+                <Text style={styles.delete}>🗑</Text>
+              </TouchableOpacity>
             </View>
-
-            <Text style={styles.status}>
-              🔒 {g?.status || 'unknown'}
-            </Text>
           </View>
-        );
-      })}
-    </ScrollView>
+        ))}
+      </ScrollView>
+
+      <AddGradeModal isOpen={isAddModalOpen} onClose={() => setIsAddModalOpen(false)} onRefresh={fetchGrades} />
+      <DeleteModal isOpen={deleteConfig.open} onClose={() => setDeleteConfig({ open: false, id: null, name: '' })} onConfirm={handleDelete} itemName={deleteConfig.name} />
+    </View>
   );
 };
 
-export default Grades;
-
 const styles = StyleSheet.create({
   container: { flex: 1, padding: 20, backgroundColor: '#F9FAFB' },
-  title: { fontSize: 24, fontWeight: 'bold', marginBottom: 20 },
-
-  card: {
-    backgroundColor: '#fff',
-    padding: 15,
-    borderRadius: 10,
-    marginBottom: 10
-  },
-
-  name: { fontWeight: 'bold', fontSize: 16 },
-  subject: { color: '#6B7280', marginBottom: 5 },
-
-  row: { flexDirection: 'row', justifyContent: 'space-between' },
-
-  status: { marginTop: 5, color: '#F59E0B' }
+  header: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 20, alignItems: 'center' },
+  title: { fontSize: 24, fontWeight: 'bold', color: '#111827' },
+  addButton: { backgroundColor: '#4F46E5', paddingHorizontal: 15, paddingVertical: 10, borderRadius: 8 },
+  addText: { color: '#fff', fontWeight: 'bold' },
+  table: { backgroundColor: '#fff', borderRadius: 10, borderWidth: 1, borderColor: '#eee' },
+  tableHeader: { flexDirection: 'row', padding: 15, borderBottomWidth: 1, borderColor: '#eee', backgroundColor: '#F9FAFB' },
+  headerText: { fontSize: 12, color: '#9CA3AF', fontWeight: 'bold' },
+  row: { flexDirection: 'row', padding: 15, borderBottomWidth: 1, borderColor: '#eee', alignItems: 'center' },
+  cell: { fontSize: 14, color: '#374151' },
+  actions: { flexDirection: 'row', justifyContent: 'flex-end', gap: 15 },
+  edit: { color: '#9CA3AF', fontSize: 18 },
+  delete: { color: '#EF4444', fontSize: 18 },
+  empty: { textAlign: 'center', padding: 30, color: '#9CA3AF' }
 });
+
+export default Grades;
