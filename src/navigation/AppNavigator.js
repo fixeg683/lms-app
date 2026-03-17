@@ -1,6 +1,6 @@
 import React from "react";
 import { Platform, View, Text, TouchableOpacity } from "react-native";
-import { NavigationContainer } from "@react-navigation/native";
+// ❌ Removed NavigationContainer import from here
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { 
   createDrawerNavigator, 
@@ -28,7 +28,6 @@ const Drawer = createDrawerNavigator();
 
 // Sidebar Content with Logout
 function CustomDrawerContent(props) {
-  // Use a fallback string to ensure no object is rendered
   const roleName = props.roleName || "User"; 
 
   return (
@@ -105,22 +104,20 @@ export default function AppNavigator({ session }) {
   const getInitialRoute = () => {
     if (!session || !session.user) return "Login";
     
-    // SAFE CHECK: Ensure role is a string and not an object
     const role = session.user?.user_metadata?.role;
     return role === "admin" ? "AdminRoot" : "Main";
   };
 
   return (
-    <NavigationContainer>
-      <Stack.Navigator 
-        initialRouteName={getInitialRoute()}
-        screenOptions={{ headerShown: false }}
-      >
-        <Stack.Screen name="Login" component={Login} />
-        <Stack.Screen name="Signup" component={Signup} />
-        <Stack.Screen name="AdminRoot" component={AdminRoot} />
-        <Stack.Screen name="Main" component={MainRoot} />
-      </Stack.Navigator>
-    </NavigationContainer>
+    // ✅ Removed <NavigationContainer> from here
+    <Stack.Navigator 
+      initialRouteName={getInitialRoute()}
+      screenOptions={{ headerShown: false }}
+    >
+      <Stack.Screen name="Login" component={Login} />
+      <Stack.Screen name="Signup" component={Signup} />
+      <Stack.Screen name="AdminRoot" component={AdminRoot} />
+      <Stack.Screen name="Main" component={MainRoot} />
+    </Stack.Navigator>
   );
 }
