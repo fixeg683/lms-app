@@ -86,7 +86,7 @@ const Signup = ({ navigation }) => {
               style={[styles.roleButton, role === 'teacher' && styles.activeRole]} 
               onPress={() => setRole('teacher')}
             >
-              <Text style={[styles.roleText, role === 'teacher' && styles.activeRoleText]}>teacher</Text>
+              <Text style={[styles.roleText, role === 'teacher' && styles.activeRoleText]}>Teacher</Text>
             </TouchableOpacity>
 
             <TouchableOpacity 
