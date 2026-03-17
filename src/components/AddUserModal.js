@@ -26,32 +26,28 @@ const AddUserModal = ({ isOpen, onClose, onRefresh }) => {
     setLoading(true);
 
     try {
-      // ✅ We let Supabase handle the ID generation automatically
-      const newUser = {
-        username: username.trim(),
-        role: role
-      };
-
+      // ✅ We do NOT send an ID or created_at. 
+      // The database handles these automatically now.
       const { error } = await supabase
         .from('profiles')
-        .insert([newUser]);
+        .insert([
+          { 
+            username: username.trim().toLowerCase(), 
+            role: role 
+          }
+        ]);
 
       if (error) {
-        // Handle duplicate username error
-        if (error.code === '23505') {
-          throw new Error('This username is already taken.');
-        }
+        if (error.code === '23505') throw new Error('Username already exists.');
         throw error;
       }
 
-      // ✅ Success Reset
       setUsername('');
       setRole('Teacher');
       onClose?.();
       onRefresh?.();
 
     } catch (error) {
-      console.error('Add user error:', error?.message || error);
       Alert.alert('Error', error.message || 'Failed to add user');
     } finally {
       setLoading(false);
@@ -66,7 +62,7 @@ const AddUserModal = ({ isOpen, onClose, onRefresh }) => {
 
           <Text style={styles.label}>Username</Text>
           <TextInput
-            placeholder="e.g. johndoe"
+            placeholder="Username"
             value={username}
             onChangeText={setUsername}
             style={styles.input}
@@ -74,11 +70,11 @@ const AddUserModal = ({ isOpen, onClose, onRefresh }) => {
             autoCapitalize="none"
           />
 
-          <Text style={styles.label}>Assign Role</Text>
+          <Text style={styles.label}>Role</Text>
           <View style={styles.pickerContainer}>
             <Picker
               selectedValue={role}
-              onValueChange={(itemValue) => setRole(itemValue)}
+              onValueChange={(val) => setRole(val)}
               style={styles.picker}
             >
               <Picker.Item label="Teacher" value="Teacher" />
@@ -87,11 +83,7 @@ const AddUserModal = ({ isOpen, onClose, onRefresh }) => {
           </View>
 
           <View style={styles.actions}>
-            <TouchableOpacity 
-              onPress={onClose} 
-              style={styles.button} 
-              disabled={loading}
-            >
+            <TouchableOpacity onPress={onClose} style={styles.button}>
               <Text style={styles.cancel}>Cancel</Text>
             </TouchableOpacity>
 
@@ -116,80 +108,16 @@ const AddUserModal = ({ isOpen, onClose, onRefresh }) => {
 export default AddUserModal;
 
 const styles = StyleSheet.create({
-  overlay: {
-    flex: 1,
-    backgroundColor: 'rgba(17, 24, 39, 0.6)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 20,
-  },
-  modal: {
-    width: '100%',
-    maxWidth: 360,
-    backgroundColor: '#FFFFFF',
-    padding: 24,
-    borderRadius: 24,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.1,
-    shadowRadius: 20,
-    elevation: 10,
-  },
-  title: { 
-    fontSize: 22, 
-    fontWeight: 'bold', 
-    color: '#111827', 
-    marginBottom: 20 
-  },
-  label: {
-    fontSize: 12,
-    fontWeight: 'bold',
-    color: '#6B7280',
-    marginBottom: 8,
-    textTransform: 'uppercase'
-  },
-  input: {
-    backgroundColor: '#F9FAFB',
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
-    padding: 14,
-    borderRadius: 12,
-    marginBottom: 16,
-    color: '#111827',
-  },
-  pickerContainer: {
-    backgroundColor: '#F9FAFB',
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
-    borderRadius: 12,
-    marginBottom: 24,
-    overflow: 'hidden'
-  },
-  picker: {
-    height: 50,
-    width: '100%',
-  },
-  actions: {
-    flexDirection: 'row',
-    justifyContent: 'flex-end',
-    gap: 12
-  },
-  button: { 
-    paddingHorizontal: 20, 
-    paddingVertical: 12,
-    borderRadius: 10
-  },
-  addBtn: {
-    backgroundColor: '#EEF2FF',
-  },
-  cancel: { 
-    color: '#6B7280', 
-    fontWeight: '600',
-    alignSelf: 'center'
-  },
-  add: { 
-    color: '#4F46E5', 
-    fontWeight: 'bold',
-    alignSelf: 'center'
-  },
+  overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center' },
+  modal: { width: 340, backgroundColor: '#fff', padding: 24, borderRadius: 20 },
+  title: { fontSize: 20, fontWeight: 'bold', marginBottom: 20 },
+  label: { fontSize: 12, fontWeight: 'bold', color: '#6B7280', marginBottom: 5 },
+  input: { backgroundColor: '#F9FAFB', borderWidth: 1, borderColor: '#E5E7EB', padding: 12, borderRadius: 10, marginBottom: 15 },
+  pickerContainer: { backgroundColor: '#F9FAFB', borderWidth: 1, borderColor: '#E5E7EB', borderRadius: 10, marginBottom: 20, overflow: 'hidden' },
+  picker: { height: 50 },
+  actions: { flexDirection: 'row', justifyContent: 'flex-end', gap: 10 },
+  button: { padding: 10 },
+  addBtn: { backgroundColor: '#EEF2FF', borderRadius: 8 },
+  cancel: { color: '#6B7280', fontWeight: '600' },
+  add: { color: '#4F46E5', fontWeight: 'bold' }
 });
