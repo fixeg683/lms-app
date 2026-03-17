@@ -1,4 +1,11 @@
 import React, { useEffect, useState } from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  ScrollView,
+} from 'react-native';
 import { supabase } from '../lib/supabase';
 import CreateClassModal from '../components/CreateClassModal';
 import DeleteModal from '../components/DeleteModal';
@@ -8,76 +15,165 @@ const Classes = () => {
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [deleteConfig, setDeleteConfig] = useState({ open: false, id: null, name: '' });
 
-  useEffect(() => { fetchClasses(); }, []);
+  useEffect(() => {
+    fetchClasses();
+  }, []);
 
   const fetchClasses = async () => {
-    // Fetches class info + count of students in that class
-    const { data } = await supabase.from('classes').select('*, students(count)');
-    setClasses(data || []);
+    try {
+      const { data, error } = await supabase
+        .from('classes')
+        .select('*, students(count)');
+
+      if (error) throw error;
+
+      setClasses(Array.isArray(data) ? data : []);
+    } catch (error) {
+      console.error('Fetch classes error:', error?.message || error);
+      setClasses([]);
+    }
   };
 
   const handleDelete = async () => {
-    const { error } = await supabase.from('classes').delete().eq('id', deleteConfig.id);
-    if (!error) {
+    if (!deleteConfig?.id) return;
+
+    try {
+      const { error } = await supabase
+        .from('classes')
+        .delete()
+        .eq('id', deleteConfig.id);
+
+      if (error) throw error;
+
       setDeleteConfig({ open: false, id: null, name: '' });
       fetchClasses();
+    } catch (error) {
+      console.error('Delete error:', error?.message || error);
     }
   };
 
   return (
-    <div className="p-8 bg-gray-50 min-h-screen">
-      <div className="flex justify-between items-center mb-8">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-800">Class Management</h1>
-          <p className="text-gray-500">Manage classes and student rosters</p>
-        </div>
-        <button 
-          onClick={() => setIsCreateOpen(true)}
-          className="bg-indigo-600 text-white px-6 py-2 rounded-lg font-bold shadow-lg shadow-indigo-200 hover:bg-indigo-700 transition"
+    <View style={styles.container}>
+      {/* Header */}
+      <View style={styles.header}>
+        <View>
+          <Text style={styles.title}>Class Management</Text>
+          <Text style={styles.subtitle}>Manage classes and student rosters</Text>
+        </View>
+
+        <TouchableOpacity
+          style={styles.addButton}
+          onPress={() => setIsCreateOpen(true)}
         >
-          + Create New Class
-        </button>
-      </div>
+          <Text style={styles.addText}>+ Create Class</Text>
+        </TouchableOpacity>
+      </View>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      {/* List */}
+      <ScrollView>
+        {classes.length === 0 && (
+          <Text style={styles.empty}>No classes found</Text>
+        )}
+
         {classes.map((item) => (
-          <div key={item.id} className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 relative">
-            <div className="absolute top-4 right-4 flex gap-2">
-              <button className="p-2 text-gray-400 hover:text-indigo-600 bg-gray-50 rounded-lg">✎</button>
-              <button 
-                onClick={() => setDeleteConfig({ open: true, id: item.id, name: item.name })}
-                className="p-2 text-red-400 hover:bg-red-50 bg-red-50/50 rounded-lg"
-              >
-                🗑
-              </button>
-            </div>
-            
-            <div className="w-12 h-12 bg-indigo-50 rounded-xl flex items-center justify-center mb-4 text-indigo-600 font-bold text-xl">∩</div>
-            <h3 className="text-xl font-bold text-gray-800 capitalize">{String(item.name || 'Untitled Class')}</h3>
-            <p className="text-sm text-gray-400 mb-6">Academic Year: {item.academic_year}</p>
-            
-            <div className="flex justify-between items-center pt-4 border-t border-gray-50">
-               <span className="text-sm text-gray-500 font-medium">
-                 {/* FIX: Access count property inside the first element of the array */}
-                 {item.students?.[0]?.count || 0} students
-               </span>
-               <button className="bg-gray-50 text-gray-700 px-4 py-1.5 rounded-lg text-sm font-bold border border-gray-200">
-                 Manage Roster
-               </button>
-            </div>
-          </div>
-        ))}
-      </div>
+          <View key={item?.id || Math.random()} style={styles.card}>
+            <Text style={styles.className}>
+              {String(item?.name || 'Untitled Class')}
+            </Text>
 
-      <CreateClassModal isOpen={isCreateOpen} onClose={() => setIsCreateOpen(false)} onRefresh={fetchClasses} />
-      <DeleteModal 
-        isOpen={deleteConfig.open} 
-        onClose={() => setDeleteConfig({ open: false, id: null, name: '' })} 
-        onConfirm={handleDelete}
-        itemName={deleteConfig.name}
-      />
-    </div>
+            <Text style={styles.year}>
+              Academic Year: {item?.academic_year || 'N/A'}
+            </Text>
+
+            <Text style={styles.count}>
+              {item?.students?.[0]?.count || 0} students
+            </Text>
+
+            <View style={styles.actions}>
+              <TouchableOpacity>
+                <Text style={styles.edit}>✎</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                onPress={() =>
+                  setDeleteConfig({
+                    open: true,
+                    id: item?.id,
+                    name: item?.name || '',
+                  })
+                }
+              >
+                <Text style={styles.delete}>🗑</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        ))}
+      </ScrollView>
+
+      {/* Modals */}
+      {CreateClassModal && (
+        <CreateClassModal
+          isOpen={isCreateOpen}
+          onClose={() => setIsCreateOpen(false)}
+          onRefresh={fetchClasses}
+        />
+      )}
+
+      {DeleteModal && (
+        <DeleteModal
+          isOpen={deleteConfig.open}
+          onClose={() =>
+            setDeleteConfig({ open: false, id: null, name: '' })
+          }
+          onConfirm={handleDelete}
+          itemName={deleteConfig.name}
+        />
+      )}
+    </View>
   );
 };
 
 export default Classes;
+
+const styles = StyleSheet.create({
+  container: { flex: 1, padding: 20, backgroundColor: '#F9FAFB' },
+
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 20,
+  },
+
+  title: { fontSize: 22, fontWeight: 'bold' },
+  subtitle: { fontSize: 12, color: '#6B7280' },
+
+  addButton: {
+    backgroundColor: '#4F46E5',
+    padding: 10,
+    borderRadius: 8,
+  },
+
+  addText: { color: '#fff', fontWeight: 'bold' },
+
+  card: {
+    backgroundColor: '#fff',
+    padding: 15,
+    marginBottom: 10,
+    borderRadius: 10,
+  },
+
+  className: { fontSize: 16, fontWeight: 'bold' },
+  year: { color: '#6B7280', marginTop: 5 },
+  count: { marginTop: 5, fontWeight: 'bold' },
+
+  actions: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    marginTop: 10,
+  },
+
+  edit: { marginRight: 10, color: '#6B7280' },
+  delete: { color: '#EF4444' },
+
+  empty: { textAlign: 'center', marginTop: 20, color: '#9CA3AF' },
+});
