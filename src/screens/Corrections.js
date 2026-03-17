@@ -1,53 +1,80 @@
 import React, { useState } from 'react';
-import { supabase } from '../lib/supabase';
+import {
+  View,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  StyleSheet
+} from 'react-native';
 
 const Corrections = () => {
-  const [searchQuery, setSearchQuery] = useState('');
+  const [query, setQuery] = useState('');
 
   const handleSearch = () => {
-    console.log("Searching for:", searchQuery);
-    // Logic to search for locked grades to unlock them
+    console.log('Searching:', query);
   };
 
   return (
-    <div className="p-8 bg-gray-50 min-h-screen">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-800">Grade Corrections</h1>
-        <p className="text-gray-500">Unlock and correct locked grades</p>
-      </div>
+    <View style={styles.container}>
+      <Text style={styles.title}>Grade Corrections</Text>
 
-      {/* Info Banner - Matches the yellow box in your screenshot */}
-      <div className="bg-orange-50 border border-orange-100 p-4 rounded-xl mb-8">
-        <div className="flex items-center gap-2 text-orange-800 font-bold mb-1 text-sm">
-          <span>✎</span> Grade Corrections
-        </div>
-        <p className="text-orange-700 text-sm">
-          Search for a student, unlock their locked grade, make the correction, then save. 
-          The grade will be automatically re-locked after saving.
-        </p>
-      </div>
+      <View style={styles.banner}>
+        <Text style={styles.bannerTitle}>Grade Corrections</Text>
+        <Text style={styles.bannerText}>
+          Search for a student, unlock grades, edit, and save.
+        </Text>
+      </View>
 
-      {/* Search Bar Section */}
-      <div className="flex gap-4">
-        <div className="relative flex-1">
-          <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400">🔍</span>
-          <input 
-            type="text" 
-            placeholder="Search by student name or ID..."
-            className="w-full pl-12 pr-4 py-3 bg-white border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none shadow-sm"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-          />
-        </div>
-        <button 
-          onClick={handleSearch}
-          className="bg-indigo-200 text-indigo-700 px-8 py-3 rounded-xl font-bold hover:bg-indigo-300 transition"
-        >
-          Search
-        </button>
-      </div>
-    </div>
+      <View style={styles.searchRow}>
+        <TextInput
+          value={query}
+          onChangeText={setQuery}
+          placeholder="Search student..."
+          style={styles.input}
+        />
+
+        <TouchableOpacity style={styles.button} onPress={handleSearch}>
+          <Text style={styles.buttonText}>Search</Text>
+        </TouchableOpacity>
+      </View>
+    </View>
   );
 };
 
 export default Corrections;
+
+const styles = StyleSheet.create({
+  container: { flex: 1, padding: 20, backgroundColor: '#F9FAFB' },
+
+  title: { fontSize: 24, fontWeight: 'bold', marginBottom: 20 },
+
+  banner: {
+    backgroundColor: '#FEF3C7',
+    padding: 15,
+    borderRadius: 10,
+    marginBottom: 20
+  },
+
+  bannerTitle: { fontWeight: 'bold', marginBottom: 5 },
+  bannerText: { color: '#92400E' },
+
+  searchRow: {
+    flexDirection: 'row',
+    gap: 10
+  },
+
+  input: {
+    flex: 1,
+    backgroundColor: '#fff',
+    padding: 10,
+    borderRadius: 8
+  },
+
+  button: {
+    backgroundColor: '#4F46E5',
+    padding: 12,
+    borderRadius: 8
+  },
+
+  buttonText: { color: '#fff' }
+});
