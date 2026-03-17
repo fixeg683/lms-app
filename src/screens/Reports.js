@@ -6,7 +6,7 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   Alert,
-  Platform, // Added for Web vs Mobile detection
+  Platform, // Added for Web-Safe check
   ScrollView
 } from 'react-native';
 import { Picker } from '@react-native-picker/picker';
@@ -48,7 +48,7 @@ const Reports = () => {
 
     setLoading(true);
     try {
-      // Nested selection to reach Classes through the Students table
+      // 1. Fetch data with the corrected nested relationship (Grade -> Student -> Class)
       let query = supabase.from('grades').select(`
         score,
         subjects (name),
@@ -75,6 +75,7 @@ const Reports = () => {
         return;
       }
 
+      // 2. Build HTML Content optimized for PDF
       const htmlContent = `
         <html>
           <head>
@@ -84,7 +85,7 @@ const Reports = () => {
               h1 { color: #4f46e5; margin: 0; font-size: 28px; }
               .meta { color: #6b7280; font-size: 14px; margin-top: 5px; }
               table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-              th { background-color: #f9fafb; text-align: left; padding: 12px; border: 1px solid #e5e7eb; color: #4b5563; font-size: 12px; text-transform: uppercase; }
+              th { background-color: #f9fafb; text-align: left; padding: 12px; border: 1px solid #e5e7eb; color: #4b5563; font-size: 10px; text-transform: uppercase; }
               td { padding: 12px; border: 1px solid #e5e7eb; font-size: 14px; }
               .score-cell { font-weight: bold; color: #059669; }
               .footer { margin-top: 40px; font-size: 10px; color: #9ca3af; text-align: center; }
@@ -116,23 +117,24 @@ const Reports = () => {
                 `).join('')}
               </tbody>
             </table>
+            <div class="footer">Document generated via EduManage Pro Cloud.</div>
           </body>
         </html>
       `;
 
-      // WEB-SAFE LOGIC
+      // 3. TRIGGER ACTION BASED ON ENVIRONMENT
       if (Platform.OS === 'web') {
-        // This opens the browser print window where you can select "Save as PDF"
+        // Trigger browser's native print dialog (allows "Save as PDF")
         await Print.printAsync({ html: htmlContent });
       } else {
-        // Mobile sharing logic
+        // Use native mobile sharing logic
         const { uri } = await Print.printToFileAsync({ html: htmlContent });
         await Sharing.shareAsync(uri, { UTI: '.pdf', mimeType: 'application/pdf' });
       }
       
     } catch (err) {
       console.error("PDF Error:", err);
-      Alert.alert("Error", "Failed to generate report.");
+      Alert.alert("Error", "Could not generate PDF. Please check your data.");
     } finally {
       setLoading(false);
     }
@@ -143,6 +145,7 @@ const Reports = () => {
       <Text style={styles.title}>Reports</Text>
       <Text style={styles.subtitle}>Select a category and target to generate a performance PDF.</Text>
 
+      {/* Navigation Tabs */}
       <View style={styles.tabs}>
         {tabs.map((tab) => (
           <TouchableOpacity
@@ -165,7 +168,7 @@ const Reports = () => {
             onValueChange={(itemValue) => setSelectedId(itemValue)}
             style={styles.picker}
           >
-            <Picker.Item label={`-- Select ${activeTab} --`} value="" />
+            <Picker.Item label={`-- Select ${activeTab} --`} value="" color="#9CA3AF" />
             {dataList.map((item) => (
               <Picker.Item 
                 key={item.id} 
@@ -198,17 +201,52 @@ const styles = StyleSheet.create({
   container: { flex: 1, padding: 20, backgroundColor: '#F9FAFB' },
   title: { fontSize: 28, fontWeight: 'bold', color: '#111827' },
   subtitle: { color: '#6B7280', marginBottom: 25, fontSize: 14 },
-  tabs: { flexDirection: 'row', backgroundColor: '#fff', borderRadius: 12, padding: 4, marginBottom: 20, borderWidth: 1, borderColor: '#E5E7EB' },
+  tabs: { 
+    flexDirection: 'row', 
+    backgroundColor: '#fff', 
+    borderRadius: 12, 
+    padding: 4, 
+    marginBottom: 20, 
+    borderWidth: 1, 
+    borderColor: '#E5E7EB' 
+  },
   tab: { flex: 1, paddingVertical: 12, alignItems: 'center', borderRadius: 10 },
   activeTab: { backgroundColor: '#EEF2FF' },
   tabText: { fontSize: 11, fontWeight: 'bold' },
   activeText: { color: '#4F46E5' },
   inactiveText: { color: '#9CA3AF' },
-  card: { backgroundColor: '#fff', padding: 24, borderRadius: 20, borderWidth: 1, borderColor: '#F3F4F6' },
+  card: { 
+    backgroundColor: '#fff', 
+    padding: 24, 
+    borderRadius: 20, 
+    borderWidth: 1, 
+    borderColor: '#F3F4F6',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 10,
+    elevation: 3
+  },
   label: { fontSize: 12, fontWeight: 'bold', color: '#4B5563', marginBottom: 10, textTransform: 'uppercase' },
-  pickerContainer: { backgroundColor: '#F9FAFB', borderRadius: 12, borderWidth: 1, borderColor: '#E5E7EB', marginBottom: 24, overflow: 'hidden' },
+  pickerContainer: { 
+    backgroundColor: '#F9FAFB', 
+    borderRadius: 12, 
+    borderWidth: 1, 
+    borderColor: '#E5E7EB', 
+    marginBottom: 24, 
+    overflow: 'hidden' 
+  },
   picker: { height: 50, width: '100%' },
-  downloadButton: { backgroundColor: '#4F46E5', padding: 16, borderRadius: 12, alignItems: 'center' },
+  downloadButton: { 
+    backgroundColor: '#4F46E5', 
+    padding: 16, 
+    borderRadius: 12, 
+    alignItems: 'center',
+    shadowColor: '#4F46E5',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+  },
   disabledButton: { backgroundColor: '#9CA3AF' },
   buttonText: { color: '#fff', fontWeight: 'bold', fontSize: 16 }
 });
