@@ -1,26 +1,36 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, ActivityIndicator } from 'react-native';
 import { supabase } from '../lib/supabase';
 import AddGradeModal from '../components/AddGradeModal';
 import DeleteModal from '../components/DeleteModal';
 
 const Grades = () => {
   const [grades, setGrades] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [deleteConfig, setDeleteConfig] = useState({ open: false, id: null, name: '' });
 
   useEffect(() => { fetchGrades(); }, []);
 
   const fetchGrades = async () => {
+    setLoading(true);
     try {
       const { data, error } = await supabase
         .from('grades')
-        .select('*, students(full_name), subjects(name)');
+        .select(`
+          id, 
+          score, 
+          status, 
+          students (full_name), 
+          subjects (name)
+        `);
+      
       if (error) throw error;
-      setGrades(Array.isArray(data) ? data : []);
+      setGrades(data || []);
     } catch (error) {
-      console.error('Fetch grades error:', error?.message || error);
-      setGrades([]);
+      console.error('Fetch grades error:', error.message);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -32,7 +42,7 @@ const Grades = () => {
       setDeleteConfig({ open: false, id: null, name: '' });
       fetchGrades();
     } catch (error) {
-      console.error('Delete error:', error?.message || error);
+      alert('Delete error: ' + error.message);
     }
   };
 
@@ -53,27 +63,31 @@ const Grades = () => {
           <Text style={[styles.headerText, { flex: 1, textAlign: 'right' }]}>ACTIONS</Text>
         </View>
 
-        {grades.length === 0 && <Text style={styles.empty}>No grades found</Text>}
-
-        {grades.map((grade) => (
-          <View key={grade?.id || Math.random()} style={styles.row}>
-            <Text style={[styles.cell, { flex: 2, fontWeight: 'bold' }]}>
-              {String(grade?.students?.full_name || 'Unknown')}
-            </Text>
-            <Text style={[styles.cell, { flex: 1.5, color: '#4F46E5' }]}>
-              {String(grade?.subjects?.name || 'N/A')}
-            </Text>
-            <Text style={[styles.cell, { flex: 0.8, textAlign: 'center', fontWeight: 'bold', color: '#10B981' }]}>
-              {String(grade?.score || 0)}
-            </Text>
-            <View style={[styles.actions, { flex: 1 }]}>
-              <TouchableOpacity><Text style={styles.edit}>✎</Text></TouchableOpacity>
-              <TouchableOpacity onPress={() => setDeleteConfig({ open: true, id: grade?.id, name: `Grade for ${grade?.students?.full_name}` })}>
-                <Text style={styles.delete}>🗑</Text>
-              </TouchableOpacity>
+        {loading ? (
+          <ActivityIndicator size="large" color="#4F46E5" style={{ marginVertical: 40 }} />
+        ) : grades.length === 0 ? (
+          <Text style={styles.empty}>No grades found</Text>
+        ) : (
+          grades.map((grade) => (
+            <View key={grade?.id} style={styles.row}>
+              <Text style={[styles.cell, { flex: 2, fontWeight: 'bold' }]}>
+                {grade?.students?.full_name || 'N/A'}
+              </Text>
+              <Text style={[styles.cell, { flex: 1.5, color: '#4F46E5' }]}>
+                {grade?.subjects?.name || 'N/A'}
+              </Text>
+              <Text style={[styles.cell, { flex: 0.8, textAlign: 'center', fontWeight: 'bold', color: '#10B981' }]}>
+                {grade?.score || 0}
+              </Text>
+              <View style={[styles.actions, { flex: 1 }]}>
+                <TouchableOpacity><Text style={styles.edit}>✎</Text></TouchableOpacity>
+                <TouchableOpacity onPress={() => setDeleteConfig({ open: true, id: grade?.id, name: `Grade for ${grade?.students?.full_name}` })}>
+                  <Text style={styles.delete}>🗑</Text>
+                </TouchableOpacity>
+              </View>
             </View>
-          </View>
-        ))}
+          ))
+        )}
       </ScrollView>
 
       <AddGradeModal isOpen={isAddModalOpen} onClose={() => setIsAddModalOpen(false)} onRefresh={fetchGrades} />

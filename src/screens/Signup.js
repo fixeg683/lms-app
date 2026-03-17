@@ -8,7 +8,7 @@ import { supabase } from '../lib/supabase';
 const Signup = ({ navigation }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [role, setRole] = useState('student'); 
+  const [role, setRole] = useState('teacher'); 
   const [loading, setLoading] = useState(false);
 
   const handleSignUp = async () => {
@@ -83,10 +83,10 @@ const Signup = ({ navigation }) => {
           <Text style={styles.label}>Select your role:</Text>
           <View style={styles.roleContainer}>
             <TouchableOpacity 
-              style={[styles.roleButton, role === 'student' && styles.activeRole]} 
-              onPress={() => setRole('student')}
+              style={[styles.roleButton, role === 'teacher' && styles.activeRole]} 
+              onPress={() => setRole('teacher')}
             >
-              <Text style={[styles.roleText, role === 'student' && styles.activeRoleText]}>Student</Text>
+              <Text style={[styles.roleText, role === 'teacher' && styles.activeRoleText]}>teacher</Text>
             </TouchableOpacity>
 
             <TouchableOpacity 
