@@ -6,7 +6,7 @@ import { View, ActivityIndicator, StyleSheet } from 'react-native';
 import { supabase } from './src/lib/supabase';
 
 // Import your Screen Components
-import LoginScreen from './src/screens/LoginScreen';
+import LoginScreen from './src/screens/Login';
 import AppNavigator from './src/navigation/AppNavigator';
 
 const Stack = createStackNavigator();
