@@ -1,8 +1,11 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, ScrollView, StyleSheet } from 'react-native';
+import { View, Text, ScrollView, StyleSheet, useWindowDimensions } from 'react-native';
 import { supabase } from '../lib/supabase';
 
 const AdminDashboard = () => {
+  const { width } = useWindowDimensions();
+  const isMobile = width < 768;
+
   const [stats, setStats] = useState({
     students: 0,
     subjects: 0,
@@ -28,7 +31,6 @@ const AdminDashboard = () => {
 
       const safeGrades = Array.isArray(grades) ? grades : [];
 
-      // Average
       const avg =
         safeGrades.length > 0
           ? (
@@ -37,9 +39,7 @@ const AdminDashboard = () => {
             ).toFixed(1)
           : 0;
 
-      // Distribution
       let EE = 0, ME = 0, BE = 0;
-
       safeGrades.forEach((g) => {
         const score = g?.score || 0;
         if (score >= 70) EE++;
@@ -55,7 +55,6 @@ const AdminDashboard = () => {
       });
 
       setDistribution({ EE, ME, BE });
-
     } catch (err) {
       console.error('Dashboard error:', err.message);
     }
@@ -64,51 +63,32 @@ const AdminDashboard = () => {
   const total = distribution.EE + distribution.ME + distribution.BE || 1;
 
   return (
-    <ScrollView style={styles.container}>
+    <ScrollView style={styles.container} contentContainerStyle={styles.scrollContent}>
       <Text style={styles.header}>Dashboard</Text>
       <Text style={styles.subHeader}>
         Overview of your exam management system
       </Text>
 
-      {/* Summary Cards */}
+      {/* Summary Cards - Grid stacks 1-column on mobile, 2-column on tablet */}
       <View style={styles.grid}>
-        <Card title="Total Students" value={stats.students} icon="👥" color="#2563EB" />
-        <Card title="Total Subjects" value={stats.subjects} icon="📚" color="#7C3AED" />
-        <Card title="Grades Entered" value={stats.grades} icon="✅" color="#059669" />
-        <Card title="Average Score" value={`${stats.average}%`} icon="🏆" color="#D97706" />
+        <Card title="Total Students" value={stats.students} icon="👥" color="#2563EB" isMobile={isMobile} />
+        <Card title="Total Subjects" value={stats.subjects} icon="📚" color="#7C3AED" isMobile={isMobile} />
+        <Card title="Grades Entered" value={stats.grades} icon="✅" color="#059669" isMobile={isMobile} />
+        <Card title="Average Score" value={`${stats.average}%`} icon="🏆" color="#D97706" isMobile={isMobile} />
       </View>
 
-      <View style={styles.contentLayout}>
+      <View style={[styles.contentLayout, { flexDirection: isMobile ? 'column' : 'row' }]}>
         {/* Grade Distribution */}
-        <View style={styles.card}>
+        <View style={[styles.card, !isMobile && { flex: 1, marginRight: 10 }]}>
           <Text style={styles.cardTitle}>Grade Distribution</Text>
-
-          <DistItem
-            label="Exceeding (EE)"
-            count={distribution.EE}
-            percent={Math.round((distribution.EE / total) * 100)}
-            color="#22C55E"
-          />
-
-          <DistItem
-            label="Meeting (ME)"
-            count={distribution.ME}
-            percent={Math.round((distribution.ME / total) * 100)}
-            color="#3B82F6"
-          />
-
-          <DistItem
-            label="Below (BE)"
-            count={distribution.BE}
-            percent={Math.round((distribution.BE / total) * 100)}
-            color="#F87171"
-          />
+          <DistItem label="Exceeding (EE)" count={distribution.EE} percent={Math.round((distribution.EE / total) * 100)} color="#22C55E" />
+          <DistItem label="Meeting (ME)" count={distribution.ME} percent={Math.round((distribution.ME / total) * 100)} color="#3B82F6" />
+          <DistItem label="Below (BE)" count={distribution.BE} percent={Math.round((distribution.BE / total) * 100)} color="#F87171" />
         </View>
 
-        {/* Top Performers (static for now, safe fallback) */}
-        <View style={styles.card}>
+        {/* Top Performers */}
+        <View style={[styles.card, !isMobile && { flex: 1, marginLeft: 10 }]}>
           <Text style={styles.cardTitle}>Top Performers</Text>
-
           <Performer rank="1" name="Top Student" grade="EE" color="#FACC15" />
           <Performer rank="2" name="Second Student" grade="EE" color="#D1D5DB" />
           <Performer rank="3" name="Third Student" grade="ME" color="#FDBA74" />
@@ -118,11 +98,11 @@ const AdminDashboard = () => {
   );
 };
 
-// Components
-const Card = ({ title, value, icon, color }) => (
-  <View style={styles.statCard}>
-    <View>
-      <Text style={styles.statLabel}>{title}</Text>
+// Sub-components
+const Card = ({ title, value, icon, color, isMobile }) => (
+  <View style={[styles.statCard, { width: isMobile ? '100%' : '48%' }]}>
+    <View style={{ flex: 1 }}>
+      <Text style={styles.statLabel} numberOfLines={1}>{title}</Text>
       <Text style={styles.statValue}>{value}</Text>
     </View>
     <Text style={[styles.icon, { color }]}>{icon}</Text>
@@ -133,18 +113,10 @@ const DistItem = ({ label, count, percent, color }) => (
   <View style={{ marginBottom: 15 }}>
     <View style={styles.distRow}>
       <Text style={styles.smallLabel}>{label}</Text>
-      <Text style={styles.smallLabel}>
-        {count} ({percent}%)
-      </Text>
+      <Text style={styles.smallLabel}>{count} ({percent}%)</Text>
     </View>
-
     <View style={styles.progressBarBg}>
-      <View
-        style={[
-          styles.progressBarFill,
-          { width: `${percent}%`, backgroundColor: color }
-        ]}
-      />
+      <View style={[styles.progressBarFill, { width: `${percent}%`, backgroundColor: color }]} />
     </View>
   </View>
 );
@@ -155,107 +127,53 @@ const Performer = ({ rank, name, grade, color }) => (
       <View style={[styles.rankCircle, { backgroundColor: color }]}>
         <Text style={styles.rankText}>{rank}</Text>
       </View>
-
       <View style={{ marginLeft: 10 }}>
         <Text style={styles.nameText}>{name}</Text>
         <Text style={styles.classText}>Class</Text>
       </View>
     </View>
-
-    <View style={styles.gradeBadge}>
-      <Text style={styles.gradeText}>{grade}</Text>
-    </View>
+    <View style={styles.gradeBadge}><Text style={styles.gradeText}>{grade}</Text></View>
   </View>
 );
 
-// Styles
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F9FAFB', padding: 20 },
-
-  header: { fontSize: 24, fontWeight: 'bold', color: '#1F2937' },
+  container: { flex: 1, backgroundColor: '#F9FAFB' },
+  scrollContent: { padding: 16, paddingBottom: 40 },
+  header: { fontSize: 24, fontWeight: 'bold', color: '#1F2937', marginTop: 10 },
   subHeader: { fontSize: 14, color: '#6B7280', marginBottom: 20 },
-
-  grid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'space-between'
-  },
-
+  grid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between' },
   statCard: {
     backgroundColor: 'white',
-    padding: 15,
+    padding: 16,
     borderRadius: 12,
-    width: '48%',
-    marginBottom: 15,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center'
-  },
-
-  statLabel: { fontSize: 10, fontWeight: 'bold', color: '#9CA3AF' },
-  statValue: { fontSize: 20, fontWeight: 'bold', color: '#111827' },
-
-  card: {
-    backgroundColor: 'white',
-    padding: 20,
-    borderRadius: 16,
-    marginBottom: 20
-  },
-
-  cardTitle: { fontSize: 16, fontWeight: 'bold', marginBottom: 15 },
-
-  smallLabel: { fontSize: 10, fontWeight: 'bold', color: '#9CA3AF' },
-
-  distRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 5
-  },
-
-  progressBarBg: {
-    height: 8,
-    backgroundColor: '#F3F4F6',
-    borderRadius: 4,
-    overflow: 'hidden'
-  },
-
-  progressBarFill: { height: '100%' },
-
-  performerRow: {
+    marginBottom: 12,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 10
+    // Shadow for better UI
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
   },
-
-  performerLeft: {
-    flexDirection: 'row',
-    alignItems: 'center'
-  },
-
-  rankCircle: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    justifyContent: 'center',
-    alignItems: 'center'
-  },
-
+  statLabel: { fontSize: 12, fontWeight: 'bold', color: '#9CA3AF', textTransform: 'uppercase' },
+  statValue: { fontSize: 22, fontWeight: 'bold', color: '#111827', marginTop: 4 },
+  card: { backgroundColor: 'white', padding: 20, borderRadius: 16, marginBottom: 16, elevation: 1 },
+  cardTitle: { fontSize: 16, fontWeight: 'bold', marginBottom: 15, color: '#1F2937' },
+  smallLabel: { fontSize: 11, fontWeight: 'bold', color: '#6B7280' },
+  distRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 6 },
+  progressBarBg: { height: 10, backgroundColor: '#F3F4F6', borderRadius: 5, overflow: 'hidden' },
+  progressBarFill: { height: '100%' },
+  performerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
+  performerLeft: { flexDirection: 'row', alignItems: 'center' },
+  rankCircle: { width: 30, height: 30, borderRadius: 15, justifyContent: 'center', alignItems: 'center' },
   rankText: { color: 'white', fontSize: 12, fontWeight: 'bold' },
-
-  nameText: { fontSize: 14, fontWeight: 'bold' },
-  classText: { fontSize: 10, color: '#9CA3AF' },
-
-  gradeBadge: {
-    backgroundColor: '#DCFCE7',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 6
-  },
-
+  nameText: { fontSize: 14, fontWeight: 'bold', color: '#1F2937' },
+  classText: { fontSize: 11, color: '#9CA3AF' },
+  gradeBadge: { backgroundColor: '#DCFCE7', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6 },
   gradeText: { color: '#15803D', fontSize: 10, fontWeight: 'bold' },
-
-  icon: { fontSize: 20 }
+  icon: { fontSize: 24 }
 });
 
 export default AdminDashboard;
