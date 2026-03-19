@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import {
   Modal,
   View,
@@ -11,90 +11,104 @@ import {
 } from 'react-native';
 import { supabase } from '../lib/supabase';
 
-const EditSubjectModal = ({ isOpen, onClose, onRefresh, subject }) => {
+const AddSubjectModal = ({ isOpen, onClose, onRefresh }) => {
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [loading, setLoading] = useState(false);
 
-  // Sync state with the selected subject when the modal opens
-  useEffect(() => {
-    if (subject) {
-      setName(subject.name || '');
-      setDescription(subject.description || '');
-    }
-  }, [subject, isOpen]);
-
-  const handleUpdateSubject = async () => {
+  const handleAddSubject = async () => {
+    // Basic Validation
     if (!name.trim()) {
-      Alert.alert('Error', 'Subject name cannot be empty');
+      Alert.alert('Error', 'Please enter a subject name');
       return;
     }
 
     setLoading(true);
+
     try {
       const { error } = await supabase
         .from('subjects')
-        .update({
-          name: name.trim(),
-          description: description.trim(),
-        })
-        .eq('id', subject.id);
+        .insert([
+          {
+            name: name.trim(),
+            description: description.trim(),
+          },
+        ]);
 
       if (error) throw error;
 
-      onClose?.();
-      onRefresh?.();
+      // Success: Reset form and close
+      setName('');
+      setDescription('');
+      onClose();
+      if (onRefresh) onRefresh(); // Trigger list update in Subjects.js
     } catch (error) {
-      console.error('Update subject error:', error?.message || error);
-      Alert.alert('Update Failed', error.message);
+      console.error('Add subject error:', error.message);
+      Alert.alert('Error', 'Could not add subject. Please try again.');
     } finally {
       setLoading(false);
     }
   };
 
+  const handleClose = () => {
+    setName('');
+    setDescription('');
+    onClose();
+  };
+
   return (
     <Modal
-      visible={!!isOpen}
+      visible={isOpen}
       transparent
       animationType="fade"
-      onRequestClose={onClose}
+      onRequestClose={handleClose}
     >
       <View style={styles.overlay}>
-        <View style={styles.modal}>
-          <Text style={styles.title}>Edit Subject</Text>
+        <View style={styles.modalContainer}>
+          <Text style={styles.modalTitle}>Add New Subject</Text>
 
-          <Text style={styles.label}>Subject Name</Text>
-          <TextInput
-            placeholder="e.g. Mathematics"
-            value={name}
-            onChangeText={setName}
-            style={styles.input}
-          />
+          <View style={styles.formGroup}>
+            <Text style={styles.label}>Subject Name</Text>
+            <TextInput
+              style={styles.input}
+              placeholder="e.g. Mathematics, Science"
+              value={name}
+              onChangeText={setName}
+              placeholderTextColor="#9CA3AF"
+            />
+          </View>
 
-          <Text style={styles.label}>Description</Text>
-          <TextInput
-            placeholder="Brief details about the subject..."
-            value={description}
-            onChangeText={setDescription}
-            style={[styles.input, styles.textArea]}
-            multiline
-            numberOfLines={3}
-          />
+          <View style={styles.formGroup}>
+            <Text style={styles.label}>Description (Optional)</Text>
+            <TextInput
+              style={[styles.input, styles.textArea]}
+              placeholder="Enter subject details..."
+              value={description}
+              onChangeText={setDescription}
+              multiline
+              numberOfLines={4}
+              placeholderTextColor="#9CA3AF"
+            />
+          </View>
 
-          <View style={styles.actions}>
-            <TouchableOpacity onPress={onClose} disabled={loading} style={styles.cancelBtn}>
-              <Text style={styles.cancelText}>Cancel</Text>
+          <View style={styles.buttonRow}>
+            <TouchableOpacity 
+              style={styles.cancelButton} 
+              onPress={handleClose}
+              disabled={loading}
+            >
+              <Text style={styles.cancelButtonText}>Cancel</Text>
             </TouchableOpacity>
 
             <TouchableOpacity 
-              onPress={handleUpdateSubject} 
+              style={[styles.submitButton, !name.trim() && styles.disabledButton]} 
+              onPress={handleAddSubject}
               disabled={loading || !name.trim()}
-              style={[styles.saveBtn, (loading || !name.trim()) && styles.disabledBtn]}
             >
               {loading ? (
-                <ActivityIndicator color="white" size="small" />
+                <ActivityIndicator color="#fff" size="small" />
               ) : (
-                <Text style={styles.saveText}>Save Changes</Text>
+                <Text style={styles.submitButtonText}>Create Subject</Text>
               )}
             </TouchableOpacity>
           </View>
@@ -104,32 +118,36 @@ const EditSubjectModal = ({ isOpen, onClose, onRefresh, subject }) => {
   );
 };
 
-export default EditSubjectModal;
+export default AddSubjectModal;
 
 const styles = StyleSheet.create({
   overlay: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.5)',
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
     justifyContent: 'center',
     alignItems: 'center',
+    padding: 20,
   },
-  modal: {
-    width: '90%',
-    maxWidth: 400,
-    backgroundColor: 'white',
-    padding: 24,
+  modalContainer: {
+    width: '100%',
+    maxWidth: 450,
+    backgroundColor: '#fff',
     borderRadius: 16,
+    padding: 24,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
+    shadowOffset: { width: 0, height: 10 },
     shadowOpacity: 0.1,
-    shadowRadius: 12,
-    elevation: 5,
+    shadowRadius: 20,
+    elevation: 10,
   },
-  title: {
+  modalTitle: {
     fontSize: 20,
-    fontWeight: '700',
-    marginBottom: 20,
+    fontWeight: 'bold',
     color: '#111827',
+    marginBottom: 20,
+  },
+  formGroup: {
+    marginBottom: 16,
   },
   label: {
     fontSize: 14,
@@ -138,47 +156,49 @@ const styles = StyleSheet.create({
     marginBottom: 6,
   },
   input: {
+    backgroundColor: '#F9FAFB',
     borderWidth: 1,
     borderColor: '#D1D5DB',
     borderRadius: 10,
     padding: 12,
-    marginBottom: 16,
     fontSize: 16,
     color: '#111827',
   },
   textArea: {
-    height: 80,
+    height: 100,
     textAlignVertical: 'top',
   },
-  actions: {
+  buttonRow: {
     flexDirection: 'row',
     justifyContent: 'flex-end',
-    gap: 12,
     marginTop: 8,
+    gap: 12,
   },
-  cancelBtn: {
-    paddingVertical: 10,
-    paddingHorizontal: 16,
+  cancelButton: {
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    borderRadius: 10,
   },
-  cancelText: {
+  cancelButtonText: {
     color: '#6B7280',
     fontWeight: '600',
     fontSize: 16,
   },
-  saveBtn: {
+  submitButton: {
     backgroundColor: '#4F46E5',
-    paddingVertical: 10,
-    paddingHorizontal: 20,
-    borderRadius: 8,
-    minWidth: 120,
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    borderRadius: 10,
+    minWidth: 140,
     alignItems: 'center',
+    justifyContent: 'center',
   },
-  saveText: {
-    color: 'white',
+  submitButtonText: {
+    color: '#fff',
     fontWeight: 'bold',
     fontSize: 16,
   },
-  disabledBtn: {
+  disabledButton: {
     backgroundColor: '#9CA3AF',
-  }
+  },
 });
