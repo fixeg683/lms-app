@@ -6,9 +6,10 @@ import {
   TouchableOpacity,
   ScrollView,
   ActivityIndicator,
+  Alert,
 } from 'react-native';
 import { supabase } from '../lib/supabase';
-import AddSubjectModal from '../components/AddSubjectModal'; // ✅ Corrected import
+import AddSubjectModal from '../components/AddSubjectModal';
 import EditSubjectModal from '../components/EditSubjectModal';
 import DeleteModal from '../components/DeleteModal';
 
@@ -54,7 +55,7 @@ const Subjects = () => {
       setDeleteConfig({ open: false, id: null, name: '' });
       fetchSubjects();
     } catch (error) {
-      console.error('Delete error:', error?.message || error);
+      Alert.alert("Error", "Could not delete subject.");
     }
   };
 
@@ -63,7 +64,7 @@ const Subjects = () => {
       <View style={styles.header}>
         <View>
           <Text style={styles.title}>Subjects</Text>
-          <Text style={styles.subtitle}>Manage school curriculum and course details</Text>
+          <Text style={styles.subtitle}>Manage curriculum and course details</Text>
         </View>
 
         <TouchableOpacity
@@ -98,9 +99,9 @@ const Subjects = () => {
                 {subject.description || 'No description provided'}
               </Text>
 
-              <View style={[styles.actions, { flex: 1 }]}>
+              <View style={styles.actions}>
                 <TouchableOpacity onPress={() => setEditConfig({ open: true, subject })}>
-                  <Text style={styles.edit}>✎</Text>
+                  <Text style={styles.editIcon}>✎</Text>
                 </TouchableOpacity>
 
                 <TouchableOpacity
@@ -112,7 +113,7 @@ const Subjects = () => {
                     })
                   }
                 >
-                  <Text style={styles.delete}>🗑</Text>
+                  <Text style={styles.deleteIcon}>🗑</Text>
                 </TouchableOpacity>
               </View>
             </View>
@@ -120,7 +121,6 @@ const Subjects = () => {
         </ScrollView>
       )}
 
-      {/* ✅ FIX: Changed AddStudentModal to AddSubjectModal */}
       <AddSubjectModal
         isOpen={isAddModalOpen}
         onClose={() => setIsAddModalOpen(false)}
@@ -144,6 +144,55 @@ const Subjects = () => {
   );
 };
 
-// ... Styles remain the same
+const styles = StyleSheet.create({
+  container: { flex: 1, padding: 20, backgroundColor: '#F9FAFB' },
+  header: { 
+    flexDirection: 'row', 
+    justifyContent: 'space-between', 
+    alignItems: 'center', 
+    marginBottom: 24 
+  },
+  title: { fontSize: 24, fontWeight: 'bold', color: '#111827' },
+  subtitle: { fontSize: 14, color: '#6B7280', marginTop: 2 },
+  addButton: { 
+    backgroundColor: '#4F46E5', 
+    paddingHorizontal: 16, 
+    paddingVertical: 10, 
+    borderRadius: 8 
+  },
+  addText: { color: '#fff', fontWeight: 'bold' },
+  table: { 
+    backgroundColor: '#fff', 
+    borderRadius: 12, 
+    borderWidth: 1, 
+    borderColor: '#E5E7EB',
+    overflow: 'hidden'
+  },
+  tableHeader: { 
+    flexDirection: 'row', 
+    padding: 15, 
+    backgroundColor: '#F9FAFB', 
+    borderBottomWidth: 1, 
+    borderColor: '#E5E7EB' 
+  },
+  headerText: { fontSize: 12, color: '#9CA3AF', fontWeight: 'bold' },
+  row: { 
+    flexDirection: 'row', 
+    padding: 15, 
+    alignItems: 'center', 
+    borderBottomWidth: 1, 
+    borderColor: '#F3F4F6' 
+  },
+  cell: { fontSize: 14, color: '#374151' },
+  actions: { 
+    flex: 1, 
+    flexDirection: 'row', 
+    justifyContent: 'flex-end', 
+    gap: 15 
+  },
+  editIcon: { fontSize: 18, color: '#9CA3AF' },
+  deleteIcon: { fontSize: 18, color: '#FCA5A5' },
+  empty: { textAlign: 'center', padding: 40, color: '#9CA3AF' },
+});
 
 export default Subjects;

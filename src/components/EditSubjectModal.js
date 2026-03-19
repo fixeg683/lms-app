@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Modal,
   View,
@@ -11,105 +11,83 @@ import {
 } from 'react-native';
 import { supabase } from '../lib/supabase';
 
-const AddSubjectModal = ({ isOpen, onClose, onRefresh }) => {
+const EditSubjectModal = ({ isOpen, onClose, onRefresh, subject }) => {
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [loading, setLoading] = useState(false);
 
-  const handleAddSubject = async () => {
-    // Basic Validation
+  // Sync state with the selected subject
+  useEffect(() => {
+    if (subject) {
+      setName(subject.name || '');
+      setDescription(subject.description || '');
+    }
+  }, [subject, isOpen]);
+
+  const handleUpdateSubject = async () => {
     if (!name.trim()) {
-      Alert.alert('Error', 'Please enter a subject name');
+      Alert.alert('Error', 'Subject name is required');
       return;
     }
 
     setLoading(true);
-
     try {
       const { error } = await supabase
         .from('subjects')
-        .insert([
-          {
-            name: name.trim(),
-            description: description.trim(),
-          },
-        ]);
+        .update({
+          name: name.trim(),
+          description: description.trim(),
+        })
+        .eq('id', subject.id); // ✅ Updates specific record
 
       if (error) throw error;
 
-      // Success: Reset form and close
-      setName('');
-      setDescription('');
       onClose();
-      if (onRefresh) onRefresh(); // Trigger list update in Subjects.js
+      if (onRefresh) onRefresh();
     } catch (error) {
-      console.error('Add subject error:', error.message);
-      Alert.alert('Error', 'Could not add subject. Please try again.');
+      console.error('Update subject error:', error.message);
+      Alert.alert('Error', 'Could not update subject.');
     } finally {
       setLoading(false);
     }
   };
 
-  const handleClose = () => {
-    setName('');
-    setDescription('');
-    onClose();
-  };
-
   return (
-    <Modal
-      visible={isOpen}
-      transparent
-      animationType="fade"
-      onRequestClose={handleClose}
-    >
+    <Modal visible={isOpen} transparent animationType="fade" onRequestClose={onClose}>
       <View style={styles.overlay}>
         <View style={styles.modalContainer}>
-          <Text style={styles.modalTitle}>Add New Subject</Text>
+          <Text style={styles.modalTitle}>Edit Subject</Text>
 
           <View style={styles.formGroup}>
             <Text style={styles.label}>Subject Name</Text>
             <TextInput
               style={styles.input}
-              placeholder="e.g. Mathematics, Science"
               value={name}
               onChangeText={setName}
-              placeholderTextColor="#9CA3AF"
             />
           </View>
 
           <View style={styles.formGroup}>
-            <Text style={styles.label}>Description (Optional)</Text>
+            <Text style={styles.label}>Description</Text>
             <TextInput
               style={[styles.input, styles.textArea]}
-              placeholder="Enter subject details..."
               value={description}
               onChangeText={setDescription}
               multiline
-              numberOfLines={4}
-              placeholderTextColor="#9CA3AF"
             />
           </View>
 
           <View style={styles.buttonRow}>
-            <TouchableOpacity 
-              style={styles.cancelButton} 
-              onPress={handleClose}
-              disabled={loading}
-            >
+            <TouchableOpacity style={styles.cancelButton} onPress={onClose}>
               <Text style={styles.cancelButtonText}>Cancel</Text>
             </TouchableOpacity>
 
             <TouchableOpacity 
               style={[styles.submitButton, !name.trim() && styles.disabledButton]} 
-              onPress={handleAddSubject}
+              onPress={handleUpdateSubject}
               disabled={loading || !name.trim()}
             >
-              {loading ? (
-                <ActivityIndicator color="#fff" size="small" />
-              ) : (
-                <Text style={styles.submitButtonText}>Create Subject</Text>
-              )}
+              {loading ? <ActivityIndicator color="#fff" size="small" /> : <Text style={styles.submitButtonText}>Save Changes</Text>}
             </TouchableOpacity>
           </View>
         </View>
@@ -118,87 +96,21 @@ const AddSubjectModal = ({ isOpen, onClose, onRefresh }) => {
   );
 };
 
-export default AddSubjectModal;
-
+// Define styles OUTSIDE the component
 const styles = StyleSheet.create({
-  overlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 20,
-  },
-  modalContainer: {
-    width: '100%',
-    maxWidth: 450,
-    backgroundColor: '#fff',
-    borderRadius: 16,
-    padding: 24,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.1,
-    shadowRadius: 20,
-    elevation: 10,
-  },
-  modalTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#111827',
-    marginBottom: 20,
-  },
-  formGroup: {
-    marginBottom: 16,
-  },
-  label: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#374151',
-    marginBottom: 6,
-  },
-  input: {
-    backgroundColor: '#F9FAFB',
-    borderWidth: 1,
-    borderColor: '#D1D5DB',
-    borderRadius: 10,
-    padding: 12,
-    fontSize: 16,
-    color: '#111827',
-  },
-  textArea: {
-    height: 100,
-    textAlignVertical: 'top',
-  },
-  buttonRow: {
-    flexDirection: 'row',
-    justifyContent: 'flex-end',
-    marginTop: 8,
-    gap: 12,
-  },
-  cancelButton: {
-    paddingVertical: 12,
-    paddingHorizontal: 20,
-    borderRadius: 10,
-  },
-  cancelButtonText: {
-    color: '#6B7280',
-    fontWeight: '600',
-    fontSize: 16,
-  },
-  submitButton: {
-    backgroundColor: '#4F46E5',
-    paddingVertical: 12,
-    paddingHorizontal: 24,
-    borderRadius: 10,
-    minWidth: 140,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  submitButtonText: {
-    color: '#fff',
-    fontWeight: 'bold',
-    fontSize: 16,
-  },
-  disabledButton: {
-    backgroundColor: '#9CA3AF',
-  },
+  overlay: { flex: 1, backgroundColor: 'rgba(0, 0, 0, 0.5)', justifyContent: 'center', alignItems: 'center', padding: 20 },
+  modalContainer: { width: '100%', maxWidth: 450, backgroundColor: '#fff', borderRadius: 16, padding: 24 },
+  modalTitle: { fontSize: 20, fontWeight: 'bold', color: '#111827', marginBottom: 20 },
+  formGroup: { marginBottom: 16 },
+  label: { fontSize: 14, fontWeight: '600', color: '#374151', marginBottom: 6 },
+  input: { backgroundColor: '#F9FAFB', borderWidth: 1, borderColor: '#D1D5DB', borderRadius: 10, padding: 12, fontSize: 16 },
+  textArea: { height: 100, textAlignVertical: 'top' },
+  buttonRow: { flexDirection: 'row', justifyContent: 'flex-end', marginTop: 8, gap: 12 },
+  cancelButton: { paddingVertical: 12, paddingHorizontal: 20 },
+  cancelButtonText: { color: '#6B7280', fontWeight: '600' },
+  submitButton: { backgroundColor: '#4F46E5', paddingVertical: 12, paddingHorizontal: 24, borderRadius: 10, minWidth: 140, alignItems: 'center' },
+  submitButtonText: { color: '#fff', fontWeight: 'bold' },
+  disabledButton: { backgroundColor: '#9CA3AF' }
 });
+
+export default EditSubjectModal;

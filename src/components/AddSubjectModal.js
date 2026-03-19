@@ -26,7 +26,10 @@ const AddSubjectModal = ({ isOpen, onClose, onRefresh }) => {
     try {
       const { error } = await supabase
         .from('subjects')
-        .insert([{ name: name.trim(), description: description.trim() }]);
+        .insert([{ 
+          name: name.trim(), 
+          description: description.trim() 
+        }]);
 
       if (error) throw error;
 
@@ -43,7 +46,12 @@ const AddSubjectModal = ({ isOpen, onClose, onRefresh }) => {
   };
 
   return (
-    <Modal visible={isOpen} transparent animationType="fade" onRequestClose={onClose}>
+    <Modal 
+      visible={isOpen} 
+      transparent 
+      animationType="fade" 
+      onRequestClose={onClose}
+    >
       <View style={styles.overlay}>
         <View style={styles.modalContainer}>
           <Text style={styles.modalTitle}>Add New Subject</Text>
@@ -55,6 +63,7 @@ const AddSubjectModal = ({ isOpen, onClose, onRefresh }) => {
               placeholder="e.g. Mathematics"
               value={name}
               onChangeText={setName}
+              placeholderTextColor="#9CA3AF"
             />
           </View>
 
@@ -66,6 +75,8 @@ const AddSubjectModal = ({ isOpen, onClose, onRefresh }) => {
               value={description}
               onChangeText={setDescription}
               multiline
+              numberOfLines={4}
+              placeholderTextColor="#9CA3AF"
             />
           </View>
 
@@ -92,7 +103,6 @@ const AddSubjectModal = ({ isOpen, onClose, onRefresh }) => {
   );
 };
 
-// --- CRITICAL SECTION: Ensure this is OUTSIDE the component function ---
 const styles = StyleSheet.create({
   overlay: {
     flex: 1,
@@ -107,10 +117,12 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
     borderRadius: 16,
     padding: 24,
+    elevation: 5,
   },
   modalTitle: {
     fontSize: 20,
     fontWeight: 'bold',
+    color: '#111827',
     marginBottom: 20,
   },
   formGroup: {
@@ -119,6 +131,7 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 14,
     fontWeight: '600',
+    color: '#374151',
     marginBottom: 6,
   },
   input: {
@@ -127,6 +140,8 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     padding: 12,
     fontSize: 16,
+    color: '#111827',
+    backgroundColor: '#F9FAFB',
   },
   textArea: {
     height: 100,
@@ -136,6 +151,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'flex-end',
     gap: 12,
+    marginTop: 8,
   },
   cancelButton: {
     padding: 12,
@@ -149,6 +165,8 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     paddingHorizontal: 24,
     borderRadius: 10,
+    minWidth: 140,
+    alignItems: 'center',
   },
   submitButtonText: {
     color: '#fff',
