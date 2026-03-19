@@ -6,7 +6,9 @@ const Reports = () => {
   const [activeTab, setActiveTab] = useState('student');
   const [loading, setLoading] = useState(false);
   const [dataList, setDataList] = useState([]);
-  const [selectedId, setSelectedId] = '';
+  
+  // ✅ FIXED: Initialized with useState correctly
+  const [selectedId, setSelectedId] = useState('');
 
   const tabs = ['student', 'class', 'subject'];
 
@@ -14,9 +16,9 @@ const Reports = () => {
     fetchOptions();
   }, [activeTab]);
 
-  // ✅ FIXED DROPDOWN FETCH
   const fetchOptions = async () => {
-    setSelectedId('');
+    setSelectedId(''); // Reset selection when switching tabs
+    setDataList([]);
 
     let table = '';
     let labelKey = '';
@@ -35,122 +37,105 @@ const Reports = () => {
     try {
       const { data, error } = await supabase
         .from(table)
-        .select('*'); // ✅ safer than selecting specific column
+        .select('*')
+        .order(labelKey, { ascending: true });
 
       if (error) throw error;
 
-      console.log(`${table} DATA:`, data); // 🔍 DEBUG
-
-      if (!data || data.length === 0) {
-        setDataList([]);
-        return;
+      if (data) {
+        const formatted = data.map((item) => ({
+          id: item.id,
+          label: item[labelKey] || 'Unnamed'
+        }));
+        setDataList(formatted);
       }
-
-      // ✅ Normalize data for dropdown
-      const formatted = data.map((item) => ({
-        id: item.id,
-        label: item[labelKey] || 'Unnamed'
-      }));
-
-      setDataList(formatted);
-
     } catch (err) {
-      console.error(err);
-      alert('Failed to load options');
+      console.error('Fetch error:', err);
     }
   };
 
   const generatePDF = async () => {
-    if (!selectedId) {
-      alert(`Please select a ${activeTab}`);
-      return;
-    }
-
+    if (!selectedId) return;
     setLoading(true);
 
     try {
-      // ✅ FIXED QUERY (NO INNER JOIN)
+      // ✅ Improved Query to handle relationships
       let query = supabase.from('grades').select(`
         score,
         subjects (name),
         students (
           full_name,
-          class_id,
-          classes (id, name)
+          class,
+          classes (name)
         )
       `);
 
       if (activeTab === 'student') {
         query = query.eq('student_id', selectedId);
       } else if (activeTab === 'class') {
+        // This assumes your students table has a class_id foreign key
         query = query.eq('students.class_id', selectedId);
       } else if (activeTab === 'subject') {
         query = query.eq('subject_id', selectedId);
       }
 
       const { data: reportData, error } = await query;
-
-      console.log('REPORT DATA:', reportData); // 🔍 DEBUG
-
       if (error) throw error;
 
       if (!reportData || reportData.length === 0) {
-        alert('No records found. Ensure grades exist in the database.');
+        alert('No grade records found for this selection.');
+        setLoading(false);
         return;
       }
 
-      const htmlContent = `
-        <div style="font-family: Arial; padding: 30px;">
-          <h1 style="color:#4F46E5;">${activeTab.toUpperCase()} REPORT</h1>
-          <p>Date: ${new Date().toLocaleDateString()}</p>
+      // Find the name of the selected entity for the title
+      const selectedName = dataList.find(i => i.id === selectedId)?.label || '';
 
-          <table style="width:100%; border-collapse: collapse; margin-top:20px;">
+      const htmlContent = `
+        <div style="font-family: sans-serif; padding: 40px; color: #1F2937;">
+          <h1 style="color: #4F46E5; margin-bottom: 4px;">Performance Report</h1>
+          <p style="font-size: 18px; margin-bottom: 20px;">${activeTab.toUpperCase()}: <strong>${selectedName}</strong></p>
+          <hr style="border: 0; border-top: 1px solid #E5E7EB; margin-bottom: 20px;" />
+          
+          <table style="width: 100%; border-collapse: collapse;">
             <thead>
-              <tr>
-                <th style="border:1px solid #ddd; padding:10px;">Student</th>
-                <th style="border:1px solid #ddd; padding:10px;">Class</th>
-                <th style="border:1px solid #ddd; padding:10px;">Subject</th>
-                <th style="border:1px solid #ddd; padding:10px;">Score</th>
+              <tr style="background-color: #F9FAFB;">
+                <th style="text-align: left; padding: 12px; border: 1px solid #E5E7EB;">Student</th>
+                <th style="text-align: left; padding: 12px; border: 1px solid #E5E7EB;">Subject</th>
+                <th style="text-align: center; padding: 12px; border: 1px solid #E5E7EB;">Score</th>
               </tr>
             </thead>
             <tbody>
               ${reportData.map(item => `
                 <tr>
-                  <td style="border:1px solid #ddd; padding:10px;">
-                    ${item.students?.full_name || 'N/A'}
-                  </td>
-                  <td style="border:1px solid #ddd; padding:10px;">
-                    ${item.students?.classes?.name || 'N/A'}
-                  </td>
-                  <td style="border:1px solid #ddd; padding:10px;">
-                    ${item.subjects?.name || 'N/A'}
-                  </td>
-                  <td style="border:1px solid #ddd; padding:10px;">
-                    ${item.score ?? 'N/A'}
-                  </td>
+                  <td style="padding: 12px; border: 1px solid #E5E7EB;">${item.students?.full_name || 'N/A'}</td>
+                  <td style="padding: 12px; border: 1px solid #E5E7EB;">${item.subjects?.name || 'N/A'}</td>
+                  <td style="padding: 12px; border: 1px solid #E5E7EB; text-align: center; font-weight: bold;">${item.score}</td>
                 </tr>
               `).join('')}
             </tbody>
           </table>
+          <p style="margin-top: 30px; font-size: 12px; color: #6B7280;">Generated on ${new Date().toLocaleString()}</p>
         </div>
       `;
 
       const element = document.createElement('div');
       element.innerHTML = htmlContent;
 
-      html2pdf()
+      await html2pdf()
         .set({
           margin: 10,
-          filename: `${activeTab}_report.pdf`,
+          filename: `${activeTab}_report_${selectedName}.pdf`,
+          image: { type: 'jpeg', quality: 0.98 },
           html2canvas: { scale: 2 },
-          jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
+          jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
         })
         .from(element)
         .save();
 
     } catch (err) {
       console.error('PDF ERROR:', err);
-      alert('Failed to generate report');
+      alert('Error generating PDF');
     } finally {
       setLoading(false);
     }
@@ -161,7 +146,6 @@ const Reports = () => {
       <h1 style={styles.title}>Reports</h1>
       <p style={styles.subtitle}>Generate performance PDF reports</p>
 
-      {/* Tabs */}
       <div style={styles.tabs}>
         {tabs.map((tab) => (
           <button
@@ -177,26 +161,19 @@ const Reports = () => {
         ))}
       </div>
 
-      {/* Card */}
       <div style={styles.card}>
         <p style={styles.label}>Select {activeTab}</p>
-
         <select
+          style={styles.select}
           value={selectedId}
           onChange={(e) => setSelectedId(e.target.value)}
-          style={styles.select}
         >
-          <option value="">-- Select {activeTab} --</option>
-
-          {dataList.length === 0 ? (
-            <option disabled>No data available</option>
-          ) : (
-            dataList.map((item) => (
-              <option key={item.id} value={item.id}>
-                {item.label}
-              </option>
-            ))
-          )}
+          <option value="">-- Choose {activeTab} --</option>
+          {dataList.map((item) => (
+            <option key={item.id} value={item.id}>
+              {item.label}
+            </option>
+          ))}
         </select>
 
         <button
@@ -207,70 +184,13 @@ const Reports = () => {
             ...(loading || !selectedId ? styles.btnDisabled : {})
           }}
         >
-          {loading ? 'Generating...' : 'Download PDF'}
+          {loading ? 'Generating Report...' : 'Download PDF Report'}
         </button>
       </div>
     </div>
   );
 };
 
-export default Reports;
+// ... (Styles stay the same as your code)
 
-/* ✅ INLINE STYLES */
-const styles = {
-  container: {
-    padding: '20px',
-    backgroundColor: '#F9FAFB',
-    minHeight: '100vh'
-  },
-  title: {
-    fontSize: '28px',
-    fontWeight: 'bold'
-  },
-  subtitle: {
-    color: '#6B7280',
-    marginBottom: '20px'
-  },
-  tabs: {
-    display: 'flex',
-    gap: '10px',
-    marginBottom: '20px'
-  },
-  tab: {
-    padding: '10px 15px',
-    borderRadius: '8px',
-    border: '1px solid #ddd',
-    cursor: 'pointer',
-    background: '#fff'
-  },
-  activeTab: {
-    backgroundColor: '#EEF2FF',
-    color: '#4F46E5'
-  },
-  card: {
-    background: '#fff',
-    padding: '20px',
-    borderRadius: '12px'
-  },
-  label: {
-    marginBottom: '10px'
-  },
-  select: {
-    width: '100%',
-    padding: '10px',
-    marginBottom: '20px',
-    borderRadius: '8px'
-  },
-  btn: {
-    backgroundColor: '#4F46E5',
-    color: '#fff',
-    padding: '12px',
-    borderRadius: '8px',
-    cursor: 'pointer',
-    border: 'none'
-  },
-  btnDisabled: {
-    backgroundColor: '#9CA3AF',
-    cursor: 'not-allowed'
-  }
-};
+export default Reports;
