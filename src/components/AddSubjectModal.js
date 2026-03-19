@@ -6,59 +6,84 @@ import {
   TextInput,
   TouchableOpacity,
   StyleSheet,
+  ActivityIndicator,
+  Alert,
 } from 'react-native';
 import { supabase } from '../lib/supabase';
 
 const AddSubjectModal = ({ isOpen, onClose, onRefresh }) => {
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
+  const [loading, setLoading] = useState(false);
 
-  const handleAdd = async () => {
-    if (!name.trim()) return;
+  const handleAddSubject = async () => {
+    if (!name.trim()) {
+      Alert.alert('Error', 'Please enter a subject name');
+      return;
+    }
 
+    setLoading(true);
     try {
-      const { error } = await supabase.from('subjects').insert([
-        { name, description },
-      ]);
+      const { error } = await supabase
+        .from('subjects')
+        .insert([{ name: name.trim(), description: description.trim() }]);
 
       if (error) throw error;
 
       setName('');
       setDescription('');
-      onClose?.();
-      onRefresh?.();
+      onClose();
+      if (onRefresh) onRefresh();
     } catch (error) {
-      console.error('Add subject error:', error?.message || error);
+      console.error('Add subject error:', error.message);
+      Alert.alert('Error', 'Could not add subject.');
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
-    <Modal visible={!!isOpen} transparent animationType="fade">
+    <Modal visible={isOpen} transparent animationType="fade" onRequestClose={onClose}>
       <View style={styles.overlay}>
-        <View style={styles.modal}>
-          <Text style={styles.title}>Add Subject</Text>
+        <View style={styles.modalContainer}>
+          <Text style={styles.modalTitle}>Add New Subject</Text>
 
-          <TextInput
-            placeholder="Subject Name"
-            value={name}
-            onChangeText={setName}
-            style={styles.input}
-          />
+          <View style={styles.formGroup}>
+            <Text style={styles.label}>Subject Name</Text>
+            <TextInput
+              style={styles.input}
+              placeholder="e.g. Mathematics"
+              value={name}
+              onChangeText={setName}
+            />
+          </View>
 
-          <TextInput
-            placeholder="Description"
-            value={description}
-            onChangeText={setDescription}
-            style={styles.input}
-          />
+          <View style={styles.formGroup}>
+            <Text style={styles.label}>Description</Text>
+            <TextInput
+              style={[styles.input, styles.textArea]}
+              placeholder="Subject details..."
+              value={description}
+              onChangeText={setDescription}
+              multiline
+            />
+          </View>
 
-          <View style={styles.actions}>
-            <TouchableOpacity onPress={onClose}>
-              <Text style={styles.cancel}>Cancel</Text>
+          <View style={styles.buttonRow}>
+            <TouchableOpacity style={styles.cancelButton} onPress={onClose}>
+              <Text style={styles.cancelButtonText}>Cancel</Text>
             </TouchableOpacity>
 
-            <TouchableOpacity onPress={handleAdd}>
-              <Text style={styles.add}>Add</Text>
+            <TouchableOpacity 
+              style={[styles.submitButton, !name.trim() && styles.disabledButton]} 
+              onPress={handleAddSubject}
+              disabled={loading || !name.trim()}
+            >
+              {loading ? (
+                <ActivityIndicator color="#fff" size="small" />
+              ) : (
+                <Text style={styles.submitButtonText}>Create Subject</Text>
+              )}
             </TouchableOpacity>
           </View>
         </View>
@@ -67,38 +92,71 @@ const AddSubjectModal = ({ isOpen, onClose, onRefresh }) => {
   );
 };
 
-export default AddSubjectModal;
-
+// --- CRITICAL SECTION: Ensure this is OUTSIDE the component function ---
 const styles = StyleSheet.create({
   overlay: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.4)',
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
     justifyContent: 'center',
     alignItems: 'center',
-  },
-
-  modal: {
-    width: 320,
-    backgroundColor: '#fff',
     padding: 20,
-    borderRadius: 12,
   },
-
-  title: { fontSize: 18, fontWeight: 'bold', marginBottom: 10 },
-
+  modalContainer: {
+    width: '100%',
+    maxWidth: 450,
+    backgroundColor: '#fff',
+    borderRadius: 16,
+    padding: 24,
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    marginBottom: 20,
+  },
+  formGroup: {
+    marginBottom: 16,
+  },
+  label: {
+    fontSize: 14,
+    fontWeight: '600',
+    marginBottom: 6,
+  },
   input: {
     borderWidth: 1,
-    borderColor: '#E5E7EB',
-    padding: 10,
-    borderRadius: 8,
-    marginBottom: 10,
+    borderColor: '#D1D5DB',
+    borderRadius: 10,
+    padding: 12,
+    fontSize: 16,
   },
-
-  actions: {
+  textArea: {
+    height: 100,
+    textAlignVertical: 'top',
+  },
+  buttonRow: {
     flexDirection: 'row',
     justifyContent: 'flex-end',
+    gap: 12,
   },
-
-  cancel: { marginRight: 15, color: '#6B7280' },
-  add: { color: '#2563EB', fontWeight: 'bold' },
+  cancelButton: {
+    padding: 12,
+  },
+  cancelButtonText: {
+    color: '#6B7280',
+    fontWeight: '600',
+  },
+  submitButton: {
+    backgroundColor: '#4F46E5',
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    borderRadius: 10,
+  },
+  submitButtonText: {
+    color: '#fff',
+    fontWeight: 'bold',
+  },
+  disabledButton: {
+    backgroundColor: '#9CA3AF',
+  },
 });
+
+export default AddSubjectModal;
