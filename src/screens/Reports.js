@@ -14,26 +14,46 @@ const Reports = () => {
     fetchOptions();
   }, [activeTab]);
 
+  // ✅ FIXED DROPDOWN FETCH
   const fetchOptions = async () => {
     setSelectedId('');
 
-    const table =
-      activeTab === 'student'
-        ? 'students'
-        : activeTab === 'class'
-        ? 'classes'
-        : 'subjects';
+    let table = '';
+    let labelKey = '';
 
-    const column = activeTab === 'student' ? 'full_name' : 'name';
+    if (activeTab === 'student') {
+      table = 'students';
+      labelKey = 'full_name';
+    } else if (activeTab === 'class') {
+      table = 'classes';
+      labelKey = 'name';
+    } else {
+      table = 'subjects';
+      labelKey = 'name';
+    }
 
     try {
       const { data, error } = await supabase
         .from(table)
-        .select(`id, ${column}`);
+        .select('*'); // ✅ safer than selecting specific column
 
       if (error) throw error;
 
-      setDataList(data || []);
+      console.log(`${table} DATA:`, data); // 🔍 DEBUG
+
+      if (!data || data.length === 0) {
+        setDataList([]);
+        return;
+      }
+
+      // ✅ Normalize data for dropdown
+      const formatted = data.map((item) => ({
+        id: item.id,
+        label: item[labelKey] || 'Unnamed'
+      }));
+
+      setDataList(formatted);
+
     } catch (err) {
       console.error(err);
       alert('Failed to load options');
@@ -49,7 +69,7 @@ const Reports = () => {
     setLoading(true);
 
     try {
-      // ✅ FIXED QUERY (NO !inner)
+      // ✅ FIXED QUERY (NO INNER JOIN)
       let query = supabase.from('grades').select(`
         score,
         subjects (name),
@@ -60,7 +80,6 @@ const Reports = () => {
         )
       `);
 
-      // ✅ FILTERS
       if (activeTab === 'student') {
         query = query.eq('student_id', selectedId);
       } else if (activeTab === 'class') {
@@ -76,7 +95,7 @@ const Reports = () => {
       if (error) throw error;
 
       if (!reportData || reportData.length === 0) {
-        alert('No records found. Check your grades table or relationships.');
+        alert('No records found. Ensure grades exist in the database.');
         return;
       }
 
@@ -116,7 +135,6 @@ const Reports = () => {
         </div>
       `;
 
-      // ✅ PDF DOWNLOAD (WEB)
       const element = document.createElement('div');
       element.innerHTML = htmlContent;
 
@@ -169,11 +187,16 @@ const Reports = () => {
           style={styles.select}
         >
           <option value="">-- Select {activeTab} --</option>
-          {dataList.map((item) => (
-            <option key={item.id} value={item.id}>
-              {item.full_name || item.name}
-            </option>
-          ))}
+
+          {dataList.length === 0 ? (
+            <option disabled>No data available</option>
+          ) : (
+            dataList.map((item) => (
+              <option key={item.id} value={item.id}>
+                {item.label}
+              </option>
+            ))
+          )}
         </select>
 
         <button
