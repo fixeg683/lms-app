@@ -1,17 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
-  ActivityIndicator,
-  Alert,
-  Platform
-} from 'react-native';
-import { Picker } from '@react-native-picker/picker';
-import * as Print from 'expo-print';
-import * as Sharing from 'expo-sharing';
+import html2pdf from 'html2pdf.js';
 import { supabase } from '../lib/supabase';
+
+import AddStudentModal from '../components/AddStudentModal'; // (optional if unused)
 
 const Reports = () => {
   const [activeTab, setActiveTab] = useState('student');
@@ -46,21 +37,20 @@ const Reports = () => {
 
       setDataList(data || []);
     } catch (err) {
-      console.error('Error fetching options:', err.message);
-      Alert.alert('Error', 'Failed to load options.');
+      console.error(err);
+      alert('Failed to load options');
     }
   };
 
   const generatePDF = async () => {
     if (!selectedId) {
-      Alert.alert('Selection Required', `Please select a ${activeTab}.`);
+      alert(`Please select a ${activeTab}`);
       return;
     }
 
     setLoading(true);
 
     try {
-      // 🔹 Fetch report data
       let query = supabase.from('grades').select(`
         score,
         subjects (name),
@@ -84,284 +74,184 @@ const Reports = () => {
       if (error) throw error;
 
       if (!reportData || reportData.length === 0) {
-        Alert.alert('No Data', 'No grade records found.');
+        alert('No records found');
         return;
       }
 
-      // 🔹 Build HTML
       const htmlContent = `
-        <html>
-          <head>
-            <style>
-              body {
-                font-family: Helvetica, Arial, sans-serif;
-                padding: 40px;
-                color: #111827;
-              }
-              .header {
-                border-bottom: 2px solid #4F46E5;
-                padding-bottom: 20px;
-                margin-bottom: 30px;
-              }
-              h1 {
-                color: #4F46E5;
-                margin: 0;
-                font-size: 24px;
-              }
-              table {
-                width: 100%;
-                border-collapse: collapse;
-                margin-top: 20px;
-              }
-              th {
-                background-color: #F9FAFB;
-                text-align: left;
-                padding: 12px;
-                border: 1px solid #E5E7EB;
-                font-size: 10px;
-                text-transform: uppercase;
-                color: #6B7280;
-              }
-              td {
-                padding: 12px;
-                border: 1px solid #E5E7EB;
-                font-size: 14px;
-              }
-              .score {
-                font-weight: bold;
-                color: #059669;
-              }
-            </style>
-          </head>
-          <body>
-            <div class="header">
-              <h1>EduManage Pro - ${activeTab.toUpperCase()} REPORT</h1>
-              <p>Date: ${new Date().toLocaleDateString()}</p>
-            </div>
+        <div style="font-family: Arial; padding: 30px;">
+          <h1 style="color:#4F46E5;">${activeTab.toUpperCase()} REPORT</h1>
+          <p>Date: ${new Date().toLocaleDateString()}</p>
 
-            <table>
-              <thead>
+          <table style="width:100%; border-collapse: collapse; margin-top:20px;">
+            <thead>
+              <tr>
+                <th style="border:1px solid #ddd; padding:10px;">Student</th>
+                <th style="border:1px solid #ddd; padding:10px;">Class</th>
+                <th style="border:1px solid #ddd; padding:10px;">Subject</th>
+                <th style="border:1px solid #ddd; padding:10px;">Score</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${reportData.map(item => `
                 <tr>
-                  <th>Student Name</th>
-                  <th>Class</th>
-                  <th>Subject</th>
-                  <th>Score</th>
+                  <td style="border:1px solid #ddd; padding:10px;">
+                    ${item.students?.full_name || ''}
+                  </td>
+                  <td style="border:1px solid #ddd; padding:10px;">
+                    ${item.students?.classes?.name || ''}
+                  </td>
+                  <td style="border:1px solid #ddd; padding:10px;">
+                    ${item.subjects?.name || ''}
+                  </td>
+                  <td style="border:1px solid #ddd; padding:10px;">
+                    ${item.score ?? ''}
+                  </td>
                 </tr>
-              </thead>
-              <tbody>
-                ${reportData
-                  .map(
-                    (item) => `
-                  <tr>
-                    <td>${item.students?.full_name || 'N/A'}</td>
-                    <td>${item.students?.classes?.name || 'N/A'}</td>
-                    <td>${item.subjects?.name || 'N/A'}</td>
-                    <td class="score">${item.score ?? 'N/A'}</td>
-                  </tr>
-                `
-                  )
-                  .join('')}
-              </tbody>
-            </table>
-          </body>
-        </html>
+              `).join('')}
+            </tbody>
+          </table>
+        </div>
       `;
 
-      // 🔹 PLATFORM-SPECIFIC DOWNLOAD
-      if (Platform.OS === 'web') {
-        // ✅ BEST OPTION: Print dialog (user saves as PDF)
-        const printWindow = window.open('', '_blank');
+      // ✅ TRUE PDF DOWNLOAD (WEB)
+      if (typeof window !== 'undefined') {
+        const element = document.createElement('div');
+        element.innerHTML = htmlContent;
 
-        if (!printWindow) {
-          Alert.alert(
-            'Popup Blocked',
-            'Please allow popups to download the report.'
-          );
-          return;
-        }
-
-        printWindow.document.write(htmlContent);
-        printWindow.document.close();
-
-        printWindow.onload = () => {
-          printWindow.focus();
-          printWindow.print();
-        };
+        html2pdf()
+          .set({
+            margin: 10,
+            filename: `${activeTab}_report.pdf`,
+            html2canvas: { scale: 2 },
+            jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
+          })
+          .from(element)
+          .save();
       } else {
-        // ✅ MOBILE
+        // ✅ MOBILE FALLBACK (if ever used)
         const { uri } = await Print.printToFileAsync({ html: htmlContent });
-
-        await Sharing.shareAsync(uri, {
-          UTI: '.pdf',
-          mimeType: 'application/pdf'
-        });
+        await Sharing.shareAsync(uri);
       }
+
     } catch (err) {
-      console.error('Download Error:', err);
-      Alert.alert('Error', 'Failed to generate report.');
+      console.error(err);
+      alert('Failed to generate report');
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Reports</Text>
-      <Text style={styles.subtitle}>Generate performance PDF reports</Text>
+    <div style={styles.container}>
+      <h1 style={styles.title}>Reports</h1>
+      <p style={styles.subtitle}>Generate performance PDF reports</p>
 
       {/* Tabs */}
-      <View style={styles.tabs}>
+      <div style={styles.tabs}>
         {tabs.map((tab) => (
-          <TouchableOpacity
+          <button
             key={tab}
-            onPress={() => setActiveTab(tab)}
-            style={[styles.tab, activeTab === tab && styles.activeTab]}
+            onClick={() => setActiveTab(tab)}
+            style={{
+              ...styles.tab,
+              ...(activeTab === tab ? styles.activeTab : {})
+            }}
           >
-            <Text
-              style={[
-                styles.tabText,
-                activeTab === tab ? styles.activeText : styles.inactiveText
-              ]}
-            >
-              {tab.toUpperCase()}
-            </Text>
-          </TouchableOpacity>
+            {tab.toUpperCase()}
+          </button>
         ))}
-      </View>
+      </div>
 
       {/* Card */}
-      <View style={styles.card}>
-        <Text style={styles.label}>Select {activeTab}</Text>
+      <div style={styles.card}>
+        <p style={styles.label}>Select {activeTab}</p>
 
-        <View style={styles.pickerContainer}>
-          <Picker
-            selectedValue={selectedId}
-            onValueChange={(val) => setSelectedId(val)}
-            style={styles.picker}
-          >
-            <Picker.Item label={`-- Select ${activeTab} --`} value="" />
-            {dataList.map((item) => (
-              <Picker.Item
-                key={item.id}
-                label={item.full_name || item.name}
-                value={item.id}
-              />
-            ))}
-          </Picker>
-        </View>
-
-        <TouchableOpacity
-          style={[
-            styles.btn,
-            (!selectedId || loading) && styles.btnDisabled
-          ]}
-          onPress={generatePDF}
-          disabled={!selectedId || loading}
+        <select
+          value={selectedId}
+          onChange={(e) => setSelectedId(e.target.value)}
+          style={styles.select}
         >
-          {loading ? (
-            <ActivityIndicator color="#fff" />
-          ) : (
-            <Text style={styles.btnText}>Download PDF</Text>
-          )}
-        </TouchableOpacity>
-      </View>
-    </View>
+          <option value="">-- Select {activeTab} --</option>
+          {dataList.map((item) => (
+            <option key={item.id} value={item.id}>
+              {item.full_name || item.name}
+            </option>
+          ))}
+        </select>
+
+        <button
+          onClick={generatePDF}
+          disabled={!selectedId || loading}
+          style={{
+            ...styles.btn,
+            ...(loading || !selectedId ? styles.btnDisabled : {})
+          }}
+        >
+          {loading ? 'Generating...' : 'Download PDF'}
+        </button>
+      </div>
+    </div>
   );
 };
 
 export default Reports;
 
-const styles = StyleSheet.create({
-  container: { flex: 1, padding: 20, backgroundColor: '#F9FAFB' },
-
+/* ✅ INLINE STYLES */
+const styles = {
+  container: {
+    padding: '20px',
+    backgroundColor: '#F9FAFB',
+    minHeight: '100vh'
+  },
   title: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    color: '#111827'
-  },
-
-  subtitle: {
-    color: '#6B7280',
-    marginBottom: 25
-  },
-
-  tabs: {
-    flexDirection: 'row',
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    padding: 4,
-    marginBottom: 20,
-    borderWidth: 1,
-    borderColor: '#E5E7EB'
-  },
-
-  tab: {
-    flex: 1,
-    paddingVertical: 12,
-    alignItems: 'center',
-    borderRadius: 10
-  },
-
-  activeTab: {
-    backgroundColor: '#EEF2FF'
-  },
-
-  tabText: {
-    fontSize: 11,
+    fontSize: '28px',
     fontWeight: 'bold'
   },
-
-  activeText: {
+  subtitle: {
+    color: '#6B7280',
+    marginBottom: '20px'
+  },
+  tabs: {
+    display: 'flex',
+    gap: '10px',
+    marginBottom: '20px'
+  },
+  tab: {
+    padding: '10px 15px',
+    borderRadius: '8px',
+    border: '1px solid #ddd',
+    cursor: 'pointer',
+    background: '#fff'
+  },
+  activeTab: {
+    backgroundColor: '#EEF2FF',
     color: '#4F46E5'
   },
-
-  inactiveText: {
-    color: '#9CA3AF'
-  },
-
   card: {
-    backgroundColor: '#fff',
-    padding: 24,
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: '#F3F4F6'
+    background: '#fff',
+    padding: '20px',
+    borderRadius: '12px'
   },
-
   label: {
-    fontSize: 12,
-    fontWeight: 'bold',
-    color: '#4B5563',
-    marginBottom: 10
+    marginBottom: '10px'
   },
-
-  pickerContainer: {
-    backgroundColor: '#F9FAFB',
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
-    marginBottom: 24,
-    overflow: 'hidden'
+  select: {
+    width: '100%',
+    padding: '10px',
+    marginBottom: '20px',
+    borderRadius: '8px'
   },
-
-  picker: {
-    height: 50,
-    width: '100%'
-  },
-
   btn: {
     backgroundColor: '#4F46E5',
-    padding: 16,
-    borderRadius: 12,
-    alignItems: 'center'
-  },
-
-  btnDisabled: {
-    backgroundColor: '#9CA3AF'
-  },
-
-  btnText: {
     color: '#fff',
-    fontWeight: 'bold',
-    fontSize: 16
+    padding: '12px',
+    borderRadius: '8px',
+    cursor: 'pointer',
+    border: 'none'
+  },
+  btnDisabled: {
+    backgroundColor: '#9CA3AF',
+    cursor: 'not-allowed'
   }
-});
+};
