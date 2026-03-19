@@ -2,13 +2,11 @@ import React, { useState, useEffect } from 'react';
 import html2pdf from 'html2pdf.js';
 import { supabase } from '../lib/supabase';
 
-import AddStudentModal from '../components/AddStudentModal'; // (optional if unused)
-
 const Reports = () => {
   const [activeTab, setActiveTab] = useState('student');
   const [loading, setLoading] = useState(false);
   const [dataList, setDataList] = useState([]);
-  const [selectedId, setSelectedId] = useState('');
+  const [selectedId, setSelectedId] = '';
 
   const tabs = ['student', 'class', 'subject'];
 
@@ -51,30 +49,34 @@ const Reports = () => {
     setLoading(true);
 
     try {
+      // ✅ FIXED QUERY (NO !inner)
       let query = supabase.from('grades').select(`
         score,
         subjects (name),
-        students!inner (
+        students (
           full_name,
           class_id,
-          classes!inner (id, name)
+          classes (id, name)
         )
       `);
 
+      // ✅ FILTERS
       if (activeTab === 'student') {
         query = query.eq('student_id', selectedId);
       } else if (activeTab === 'class') {
-        query = query.filter('students.class_id', 'eq', selectedId);
+        query = query.eq('students.class_id', selectedId);
       } else if (activeTab === 'subject') {
         query = query.eq('subject_id', selectedId);
       }
 
       const { data: reportData, error } = await query;
 
+      console.log('REPORT DATA:', reportData); // 🔍 DEBUG
+
       if (error) throw error;
 
       if (!reportData || reportData.length === 0) {
-        alert('No records found');
+        alert('No records found. Check your grades table or relationships.');
         return;
       }
 
@@ -96,16 +98,16 @@ const Reports = () => {
               ${reportData.map(item => `
                 <tr>
                   <td style="border:1px solid #ddd; padding:10px;">
-                    ${item.students?.full_name || ''}
+                    ${item.students?.full_name || 'N/A'}
                   </td>
                   <td style="border:1px solid #ddd; padding:10px;">
-                    ${item.students?.classes?.name || ''}
+                    ${item.students?.classes?.name || 'N/A'}
                   </td>
                   <td style="border:1px solid #ddd; padding:10px;">
-                    ${item.subjects?.name || ''}
+                    ${item.subjects?.name || 'N/A'}
                   </td>
                   <td style="border:1px solid #ddd; padding:10px;">
-                    ${item.score ?? ''}
+                    ${item.score ?? 'N/A'}
                   </td>
                 </tr>
               `).join('')}
@@ -114,28 +116,22 @@ const Reports = () => {
         </div>
       `;
 
-      // ✅ TRUE PDF DOWNLOAD (WEB)
-      if (typeof window !== 'undefined') {
-        const element = document.createElement('div');
-        element.innerHTML = htmlContent;
+      // ✅ PDF DOWNLOAD (WEB)
+      const element = document.createElement('div');
+      element.innerHTML = htmlContent;
 
-        html2pdf()
-          .set({
-            margin: 10,
-            filename: `${activeTab}_report.pdf`,
-            html2canvas: { scale: 2 },
-            jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
-          })
-          .from(element)
-          .save();
-      } else {
-        // ✅ MOBILE FALLBACK (if ever used)
-        const { uri } = await Print.printToFileAsync({ html: htmlContent });
-        await Sharing.shareAsync(uri);
-      }
+      html2pdf()
+        .set({
+          margin: 10,
+          filename: `${activeTab}_report.pdf`,
+          html2canvas: { scale: 2 },
+          jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
+        })
+        .from(element)
+        .save();
 
     } catch (err) {
-      console.error(err);
+      console.error('PDF ERROR:', err);
       alert('Failed to generate report');
     } finally {
       setLoading(false);
