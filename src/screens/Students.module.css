@@ -1,0 +1,127 @@
+/* Students.module.css */
+
+.container {
+  padding: 24px;
+  background-color: #f9fafb;
+  min-height: 100vh;
+}
+
+.headerContainer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+}
+
+.title {
+  font-size: 24px;
+  font-weight: 700;
+  color: #111827;
+}
+
+.subtitle {
+  font-size: 14px;
+  color: #6b7280;
+}
+
+.addButton {
+  background-color: #4f46e5;
+  padding: 10px 16px;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.addButtonText {
+  color: white;
+  font-weight: 600;
+}
+
+.tableContainer {
+  background-color: white;
+  border-radius: 12px;
+  padding: 16px;
+  overflow-x: auto;
+}
+
+.tableHeader {
+  display: flex;
+  border-bottom: 1px solid #e5e7eb;
+  padding-bottom: 8px;
+  margin-bottom: 12px;
+}
+
+.headerText {
+  font-size: 12px;
+  font-weight: 700;
+  color: #6b7280;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  padding: 12px 0;
+  border-bottom: 1px solid #f3f4f6;
+}
+
+.studentCell {
+  flex: 2;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.avatar {
+  width: 36px;
+  height: 36px;
+  background-color: #6366f1;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.avatarText {
+  color: white;
+  font-weight: 600;
+}
+
+.studentName {
+  font-weight: 500;
+  color: #111827;
+}
+
+.classCell {
+  flex: 1;
+}
+
+.badge {
+  background-color: #eef2ff;
+  padding: 6px 10px;
+  border-radius: 999px;
+  display: inline-block;
+}
+
+.badgeText {
+  color: #4338ca;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.actionCell {
+  flex: 0.5;
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+}
+
+.editIcon {
+  cursor: pointer;
+  color: #2563eb;
+  font-size: 16px;
+}
+
+.deleteIcon {
+  cursor: pointer;
+  color: #dc2626;
+  font-size: 16px;
+}

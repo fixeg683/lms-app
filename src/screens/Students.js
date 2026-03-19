@@ -1,26 +1,18 @@
 import React, { useEffect, useState } from 'react';
-import { 
-  View, 
-  Text, 
-  StyleSheet, 
-  TouchableOpacity, 
-  ScrollView, 
-  ActivityIndicator,
-  Alert // Added for error feedback
-} from 'react-native';
+import styles from './Students.module.css';
 import { supabase } from '../lib/supabase';
+
 import AddStudentModal from '../components/AddStudentModal';
-import EditStudentModal from '../components/EditStudentModal'; // Added this
+import EditStudentModal from '../components/EditStudentModal';
 import DeleteModal from '../components/DeleteModal';
 
 const Students = () => {
   const [students, setStudents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
-  
-  // Added state for Editing
+
   const [editConfig, setEditConfig] = useState({ open: false, student: null });
-  const [deleteConfig, setDeleteConfig] = useState({ open: false, id: null, name: '' });
+  const [deleteConfig, setDeleteConfig] = { open: false, id: null, name: '' };
 
   useEffect(() => {
     fetchStudents();
@@ -29,10 +21,9 @@ const Students = () => {
   const fetchStudents = async () => {
     setLoading(true);
     try {
-      // Updated query to fetch the direct 'class' column we added
       const { data, error } = await supabase
         .from('students')
-        .select('*') 
+        .select('*')
         .order('created_at', { ascending: false });
 
       if (error) throw error;
@@ -47,6 +38,7 @@ const Students = () => {
 
   const handleDelete = async () => {
     if (!deleteConfig?.id) return;
+
     try {
       const { error } = await supabase
         .from('students')
@@ -54,38 +46,50 @@ const Students = () => {
         .eq('id', deleteConfig.id);
 
       if (error) throw error;
+
       setDeleteConfig({ open: false, id: null, name: '' });
       fetchStudents();
     } catch (error) {
-      Alert.alert("Error", error.message);
+      alert(error.message);
     }
   };
 
   return (
-    <View style={styles.container}>
-      <View style={styles.headerContainer}>
-        <View>
-          <Text style={styles.title}>Student Management</Text>
-          <Text style={styles.subtitle}>Manage student records and information</Text>
-        </View>
+    <div className={styles.container}>
+      <div className={styles.headerContainer}>
+        <div>
+          <h1 className={styles.title}>Student Management</h1>
+          <p className={styles.subtitle}>
+            Manage student records and information
+          </p>
+        </div>
 
-        <TouchableOpacity 
-          style={styles.addButton}
-          onPress={() => setIsAddModalOpen(true)}
+        <button
+          className={styles.addButton}
+          onClick={() => setIsAddModalOpen(true)}
         >
-          <Text style={styles.addButtonText}>+ Add Student</Text>
-        </TouchableOpacity>
-      </View>
+          + Add Student
+        </button>
+      </div>
 
       {loading ? (
-        <ActivityIndicator size="large" color="#4F46E5" style={{ marginTop: 50 }} />
+        <div style={{ marginTop: 50 }}>Loading...</div>
       ) : (
-        <ScrollView style={styles.tableContainer}>
-          <View style={styles.tableHeader}>
-            <Text style={[styles.headerText, { flex: 2 }]}>STUDENT</Text>
-            <Text style={[styles.headerText, { flex: 1 }]}>CLASS</Text>
-            <Text style={[styles.headerText, { flex: 0.5, textAlign: 'right' }]}>ACTIONS</Text>
-          </View>
+        <div className={styles.tableContainer}>
+          <div className={styles.tableHeader}>
+            <span className={styles.headerText} style={{ flex: 2 }}>
+              STUDENT
+            </span>
+            <span className={styles.headerText} style={{ flex: 1 }}>
+              CLASS
+            </span>
+            <span
+              className={styles.headerText}
+              style={{ flex: 0.5, textAlign: 'right' }}
+            >
+              ACTIONS
+            </span>
+          </div>
 
           {students.map((student) => {
             const initials = student?.full_name
@@ -93,32 +97,35 @@ const Students = () => {
               : '??';
 
             return (
-              <View key={student.id} style={styles.row}> 
-                <View style={styles.studentCell}>
-                  <View style={styles.avatar}>
-                    <Text style={styles.avatarText}>{initials}</Text>
-                  </View>
-                  <Text style={styles.studentName}>{student.full_name}</Text>
-                </View>
+              <div key={student.id} className={styles.row}>
+                <div className={styles.studentCell}>
+                  <div className={styles.avatar}>
+                    <span className={styles.avatarText}>{initials}</span>
+                  </div>
+                  <span className={styles.studentName}>
+                    {student.full_name}
+                  </span>
+                </div>
 
-                <View style={styles.classCell}>
-                  <View style={styles.badge}>
-                    <Text style={styles.badgeText}>
-                      {/* Changed from student.classes.name to student.class */}
+                <div className={styles.classCell}>
+                  <div className={styles.badge}>
+                    <span className={styles.badgeText}>
                       {student.class || 'Unassigned'}
-                    </Text>
-                  </View>
-                </View>
+                    </span>
+                  </div>
+                </div>
 
-                <View style={styles.actionCell}>
-                  <TouchableOpacity
-                    onPress={() => setEditConfig({ open: true, student })}
+                <div className={styles.actionCell}>
+                  <span
+                    className={styles.editIcon}
+                    onClick={() => setEditConfig({ open: true, student })}
                   >
-                    <Text style={styles.editIcon}>✎</Text>
-                  </TouchableOpacity>
+                    ✎
+                  </span>
 
-                  <TouchableOpacity
-                    onPress={() =>
+                  <span
+                    className={styles.deleteIcon}
+                    onClick={() =>
                       setDeleteConfig({
                         open: true,
                         id: student.id,
@@ -126,38 +133,36 @@ const Students = () => {
                       })
                     }
                   >
-                    <Text style={styles.deleteIcon}>🗑</Text>
-                  </TouchableOpacity>
-                </View>
-              </View>
+                    🗑
+                  </span>
+                </div>
+              </div>
             );
           })}
-        </ScrollView>
+        </div>
       )}
 
-      {/* MODALS */}
-      <AddStudentModal 
-        isOpen={isAddModalOpen} 
-        onClose={() => setIsAddModalOpen(false)} 
-        onRefresh={fetchStudents} 
+      <AddStudentModal
+        isOpen={isAddModalOpen}
+        onClose={() => setIsAddModalOpen(false)}
+        onRefresh={fetchStudents}
       />
 
-      <EditStudentModal 
+      <EditStudentModal
         isOpen={editConfig.open}
         student={editConfig.student}
         onClose={() => setEditConfig({ open: false, student: null })}
         onRefresh={fetchStudents}
       />
 
-      <DeleteModal 
-        isOpen={deleteConfig.open} 
-        onClose={() => setDeleteConfig({ open: false, id: null, name: '' })} 
+      <DeleteModal
+        isOpen={deleteConfig.open}
+        onClose={() => setDeleteConfig({ open: false, id: null, name: '' })}
         onConfirm={handleDelete}
         itemName={deleteConfig.name}
       />
-    </View>
+    </div>
   );
 };
 
-// ... styles remain the same
 export default Students;
