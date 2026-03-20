@@ -7,17 +7,19 @@ import {
   TouchableOpacity,
   StyleSheet,
   ActivityIndicator,
-  Alert,
 } from 'react-native';
 import { supabase } from '../lib/supabase';
 
 const AddGradeModal = ({ isOpen, onClose, onRefresh }) => {
   const [students, setStudents] = useState([]);
   const [subjects, setSubjects] = useState([]);
+  const [exams, setExams] = useState([]); // ✅ Added Exams State
+  
   const [selectedStudent, setSelectedStudent] = useState('');
   const [selectedSubject, setSelectedSubject] = useState('');
+  const [selectedExam, setSelectedExam] = useState(''); // ✅ Added Selected Exam State
   const [score, setScore] = useState('');
-  const [comments, setComments] = useState(''); // ✅ Added Comments State
+  const [comments, setComments] = useState('');
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
@@ -28,18 +30,24 @@ const AddGradeModal = ({ isOpen, onClose, onRefresh }) => {
 
   const fetchData = async () => {
     try {
-      const { data: st } = await supabase.from('students').select('id, full_name').order('full_name');
-      const { data: sb } = await supabase.from('subjects').select('id, name').order('name');
-      setStudents(st || []);
-      setSubjects(sb || []);
+      const [stRes, sbRes, exRes] = await Promise.all([
+        supabase.from('students').select('id, full_name').order('full_name'),
+        supabase.from('subjects').select('id, name').order('name'),
+        supabase.from('exam_instances').select('id, name').order('date', { ascending: false }) // ✅ Fetch Exams
+      ]);
+      
+      setStudents(stRes.data || []);
+      setSubjects(sbRes.data || []);
+      setExams(exRes.data || []);
     } catch (error) {
       console.error("Fetch error:", error);
     }
   };
 
   const handleAdd = async () => {
-    if (!selectedStudent || !selectedSubject || !score.trim()) {
-      alert("Please select a student, subject, and enter a score.");
+    // ✅ Added selectedExam to validation
+    if (!selectedStudent || !selectedSubject || !selectedExam || !score.trim()) {
+      alert("Please select a student, subject, exam, and enter a score.");
       return;
     }
 
@@ -49,18 +57,21 @@ const AddGradeModal = ({ isOpen, onClose, onRefresh }) => {
         { 
           student_id: selectedStudent, 
           subject_id: selectedSubject, 
+          exam_id: selectedExam, // ✅ Linking the Exam ID
           score: parseFloat(score),
-          comments: comments.trim(), // ✅ Saving comments
+          comments: comments.trim(),
           status: 'Locked' 
         },
       ]);
 
       if (error) throw error;
 
+      // Reset fields
       setScore('');
       setComments('');
       setSelectedStudent('');
       setSelectedSubject('');
+      setSelectedExam('');
       onClose?.();
       onRefresh?.();
     } catch (error) {
@@ -75,6 +86,17 @@ const AddGradeModal = ({ isOpen, onClose, onRefresh }) => {
       <View style={styles.overlay}>
         <View style={styles.modal}>
           <Text style={styles.title}>Add New Grade</Text>
+
+          {/* Exam Selection Dropdown */}
+          <Text style={styles.label}>Exam Name</Text>
+          <select 
+            style={webStyles.select}
+            value={selectedExam}
+            onChange={(e) => setSelectedExam(e.target.value)}
+          >
+            <option value="">Select Exam Instance</option>
+            {exams.map(ex => <option key={ex.id} value={ex.id}>{ex.name}</option>)}
+          </select>
 
           <Text style={styles.label}>Student</Text>
           <select 
@@ -96,17 +118,19 @@ const AddGradeModal = ({ isOpen, onClose, onRefresh }) => {
             {subjects.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
           </select>
 
-          <Text style={styles.label}>Score</Text>
-          <TextInput
-            placeholder="e.g. 85"
-            value={score}
-            onChangeText={setScore}
-            keyboardType="numeric"
-            style={styles.input}
-            placeholderTextColor="#9CA3AF"
-          />
+          <View style={styles.row}>
+            <View style={{ flex: 1 }}>
+                <Text style={styles.label}>Score</Text>
+                <TextInput
+                    placeholder="e.g. 85"
+                    value={score}
+                    onChangeText={setScore}
+                    keyboardType="numeric"
+                    style={styles.input}
+                />
+            </View>
+          </View>
 
-          {/* ✅ Added Comments Input */}
           <Text style={styles.label}>Teacher Comments</Text>
           <TextInput
             placeholder="Provide feedback..."
@@ -115,11 +139,10 @@ const AddGradeModal = ({ isOpen, onClose, onRefresh }) => {
             multiline
             numberOfLines={3}
             style={[styles.input, styles.textArea]}
-            placeholderTextColor="#9CA3AF"
           />
 
           <View style={styles.actions}>
-            <TouchableOpacity onPress={onClose} style={styles.button} disabled={loading}>
+            <TouchableOpacity onPress={onClose} style={styles.button}>
               <Text style={styles.cancel}>Cancel</Text>
             </TouchableOpacity>
 
@@ -153,15 +176,15 @@ const webStyles = {
 
 const styles = StyleSheet.create({
   overlay: { flex: 1, backgroundColor: 'rgba(17, 24, 39, 0.4)', justifyContent: 'center', alignItems: 'center', padding: 20 },
-  modal: { width: '100%', maxWidth: 360, backgroundColor: '#FFFFFF', padding: 24, borderRadius: 20, shadowColor: '#000', elevation: 10 },
+  modal: { width: '100%', maxWidth: 380, backgroundColor: '#FFFFFF', padding: 24, borderRadius: 20 },
   title: { fontSize: 20, fontWeight: 'bold', color: '#111827', marginBottom: 20 },
   label: { fontSize: 12, fontWeight: 'bold', color: '#6B7280', marginBottom: 4, marginLeft: 4 },
-  input: { width: '100%', backgroundColor: '#F9FAFB', borderWidth: 1, borderColor: '#F3F4F6', padding: 14, borderRadius: 12, marginBottom: 12, fontSize: 14, color: '#374151' },
-  textArea: { height: 80, textAlignVertical: 'top' },
+  input: { width: '100%', backgroundColor: '#F9FAFB', borderWidth: 1, borderColor: '#F3F4F6', padding: 14, borderRadius: 12, marginBottom: 12, fontSize: 14 },
+  textArea: { height: 70, textAlignVertical: 'top' },
   actions: { flexDirection: 'row', justifyContent: 'flex-end', marginTop: 12, gap: 8 },
   button: { paddingHorizontal: 16, paddingVertical: 10 },
-  cancel: { color: '#6B7280', fontWeight: '600', fontSize: 14 },
-  add: { color: '#4F46E5', fontWeight: 'bold', fontSize: 14 },
+  cancel: { color: '#6B7280', fontWeight: '600' },
+  add: { color: '#4F46E5', fontWeight: 'bold' },
 });
 
 export default AddGradeModal;
