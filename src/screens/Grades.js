@@ -6,20 +6,23 @@ import {
   TouchableOpacity,
   ScrollView,
   ActivityIndicator,
+  Alert,
 } from 'react-native';
 import { supabase } from '../lib/supabase';
 import { Picker } from '@react-native-picker/picker';
 
 import AddGradeModal from '../components/AddGradeModal';
-import EditGradeModal from '../components/EditGradeModal'; // ✅ Added Import
+import EditGradeModal from '../components/EditGradeModal';
+import DeleteModal from '../components/DeleteModal'; // ✅ Added DeleteModal
 
 const Grades = () => {
   const [grades, setGrades] = useState([]);
   const [loading, setLoading] = useState(true);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   
-  // ✅ State for Edit Modal
+  // ✅ State for Modals
   const [editConfig, setEditConfig] = useState({ open: false, data: null });
+  const [deleteConfig, setDeleteConfig] = useState({ open: false, id: null, name: '' });
 
   const [classes, setClasses] = useState([]);
   const [subjects, setSubjects] = useState([]);
@@ -78,6 +81,25 @@ const Grades = () => {
       console.error('Grade Fetch Error:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  // ✅ Handle Delete Logic
+  const handleDelete = async () => {
+    if (!deleteConfig.id) return;
+
+    try {
+      const { error } = await supabase
+        .from('grades')
+        .delete()
+        .eq('id', deleteConfig.id);
+
+      if (error) throw error;
+
+      setDeleteConfig({ open: false, id: null, name: '' });
+      fetchGrades(); // Refresh table
+    } catch (error) {
+      Alert.alert('Error', 'Failed to delete grade: ' + error.message);
     }
   };
 
@@ -170,11 +192,19 @@ const Grades = () => {
                   </View>
                 </View>
                 <View style={[styles.actions, styles.colActions]}>
-                  {/* ✅ Connect Edit Trigger */}
                   <TouchableOpacity onPress={() => setEditConfig({ open: true, data: grade })} style={styles.iconBtn}>
                     <Text style={styles.editIcon}>✎</Text>
                   </TouchableOpacity>
-                  <TouchableOpacity style={styles.iconBtn}>
+                  
+                  {/* ✅ Delete Button Wired */}
+                  <TouchableOpacity 
+                    onPress={() => setDeleteConfig({ 
+                      open: true, 
+                      id: grade.id, 
+                      name: `${grade.students?.full_name} - ${grade.subjects?.name}` 
+                    })} 
+                    style={styles.iconBtn}
+                  >
                     <Text style={styles.deleteIcon}>🗑</Text>
                   </TouchableOpacity>
                 </View>
@@ -184,7 +214,7 @@ const Grades = () => {
         </ScrollView>
       )}
 
-      {/* ✅ Edit Modal Rendering */}
+      {/* ✅ Modals */}
       <EditGradeModal 
         isOpen={editConfig.open}
         gradeData={editConfig.data}
@@ -197,11 +227,18 @@ const Grades = () => {
         onClose={() => setIsAddModalOpen(false)} 
         onRefresh={fetchGrades} 
       />
+
+      <DeleteModal
+        isOpen={deleteConfig.open}
+        onClose={() => setDeleteConfig({ open: false, id: null, name: '' })}
+        onConfirm={handleDelete}
+        itemName={deleteConfig.name}
+      />
     </View>
   );
 };
 
-// ... (Styles from your provided code remain unchanged)
+// ... Styles remain unchanged from your base code
 const styles = StyleSheet.create({
   container: { flex: 1, padding: 24, backgroundColor: '#F9FAFB' },
   header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 32 },
