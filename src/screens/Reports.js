@@ -1,101 +1,93 @@
 import React, { useState, useEffect } from 'react';
 import html2pdf from 'html2pdf.js';
 import { supabase } from '../lib/supabase';
+// ✅ Import your specialized logic
+import { fetchStudentReportData } from '../utils/gradeCalculations';
+import { generateReportHTML } from '../utils/reportTemplate';
 
-// 1. Move styles to the top OR ensure they are defined before export
 const styles = {
-  container: {
-    padding: '20px',
-    backgroundColor: '#F9FAFB',
-    minHeight: '100vh',
-    fontFamily: 'sans-serif'
-  },
-  title: { fontSize: '28px', fontWeight: 'bold', marginBottom: '4px' },
-  subtitle: { color: '#6B7280', marginBottom: '20px' },
-  tabs: { display: 'flex', gap: '10px', marginBottom: '20px' },
-  tab: {
-    padding: '10px 15px',
-    borderRadius: '8px',
-    border: '1px solid #ddd',
-    cursor: 'pointer',
-    background: '#fff'
-  },
-  activeTab: { backgroundColor: '#EEF2FF', color: '#4F46E5', borderColor: '#4F46E5' },
-  card: { background: '#fff', padding: '20px', borderRadius: '12px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' },
-  label: { marginBottom: '8px', display: 'block', fontWeight: '600' },
+  container: { padding: '24px', backgroundColor: '#F9FAFB', minHeight: '100vh', fontFamily: 'Inter, sans-serif' },
+  title: { fontSize: '28px', fontWeight: 'bold', color: '#111827', marginBottom: '8px' },
+  subtitle: { color: '#6B7280', marginBottom: '32px' },
+  card: { background: '#fff', padding: '32px', borderRadius: '16px', border: '1px solid #E5E7EB', maxWidth: '500px' },
+  label: { marginBottom: '8px', display: 'block', fontWeight: '600', color: '#374151', fontSize: '14px' },
   select: {
     width: '100%',
     padding: '12px',
-    marginBottom: '20px',
-    borderRadius: '8px',
+    marginBottom: '24px',
+    borderRadius: '10px',
     border: '1px solid #D1D5DB',
-    fontSize: '16px'
+    fontSize: '16px',
+    backgroundColor: '#F9FAFB'
   },
   btn: {
     backgroundColor: '#4F46E5',
     color: '#fff',
-    padding: '12px 24px',
-    borderRadius: '8px',
+    padding: '14px 24px',
+    borderRadius: '10px',
     cursor: 'pointer',
     border: 'none',
     fontWeight: 'bold',
-    width: '100%'
+    width: '100%',
+    fontSize: '16px',
+    transition: 'background-color 0.2s'
   },
-  btnDisabled: { backgroundColor: '#9CA3AF', cursor: 'not-allowed' }
+  btnDisabled: { backgroundColor: '#9CA3AF', cursor: 'not-allowed' },
+  warning: { marginTop: '16px', color: '#9CA3AF', fontSize: '12px', fontStyle: 'italic', lineHeight: '1.5' }
 };
 
 const Reports = () => {
-  const [activeTab, setActiveTab] = useState('student');
   const [loading, setLoading] = useState(false);
-  const [dataList, setDataList] = useState([]);
-  const [selectedId, setSelectedId] = useState(''); // ✅ Fixed state initialization
-
-  const tabs = ['student', 'class', 'subject'];
+  const [students, setStudents] = useState([]);
+  const [selectedStudentId, setSelectedStudentId] = useState('');
 
   useEffect(() => {
-    fetchOptions();
-  }, [activeTab]);
+    fetchStudents();
+  }, []);
 
-  const fetchOptions = async () => {
-    setSelectedId('');
-    let table = activeTab === 'student' ? 'students' : activeTab === 'class' ? 'classes' : 'subjects';
-    let labelKey = activeTab === 'student' ? 'full_name' : 'name';
-
+  const fetchStudents = async () => {
     try {
-      const { data, error } = await supabase.from(table).select('*').order(labelKey, { ascending: true });
+      const { data, error } = await supabase
+        .from('students')
+        .select('id, full_name')
+        .order('full_name', { ascending: true });
       if (error) throw error;
-      setDataList(data.map(item => ({ id: item.id, label: item[labelKey] || 'Unnamed' })));
+      setStudents(data || []);
     } catch (err) {
-      console.error(err);
+      console.error("Error fetching students:", err.message);
     }
   };
 
-  const generatePDF = async () => {
-    if (!selectedId) return;
+  const handleDownloadPDF = async () => {
+    if (!selectedStudentId) return;
+    
     setLoading(true);
     try {
-      let query = supabase.from('grades').select(`
-        score,
-        subjects (name),
-        students (full_name, class)
-      `);
+      // 1. Fetch data using the specialized 8-subject logic
+      const reportData = await fetchStudentReportData(selectedStudentId);
 
-      if (activeTab === 'student') query = query.eq('student_id', selectedId);
-      else if (activeTab === 'subject') query = query.eq('subject_id', selectedId);
+      // 2. Generate the HTML structure based on your Tassia School template
+      const reportHTML = generateReportHTML(reportData);
 
-      const { data: reportData, error } = await query;
-      if (error) throw error;
-
-      if (!reportData || reportData.length === 0) {
-        alert('No data found for this selection');
-        return;
-      }
-
+      // 3. Create a temporary container for html2pdf
       const element = document.createElement('div');
-      element.innerHTML = `<h1>Report</h1><p>Generated on ${new Date().toLocaleDateString()}</p>`;
-      html2pdf().from(element).save();
+      element.innerHTML = reportHTML;
+
+      // 4. Configure PDF options for a professional look
+      const opt = {
+        margin: [0, 0],
+        filename: `Report_${reportData.name.replace(/\s+/g, '_')}_2025.pdf`,
+        image: { type: 'jpeg', quality: 0.98 },
+        html2canvas: { scale: 2, useCORS: true, letterRendering: true },
+        jsPDF: { unit: 'in', format: 'a4', orientation: 'portrait' }
+      };
+
+      // 5. Run the conversion
+      await html2pdf().set(opt).from(element).save();
+
     } catch (err) {
-      alert('PDF Error');
+      console.error(err);
+      alert(err.message || "Failed to generate report. Ensure all 8 subjects have grades.");
     } finally {
       setLoading(false);
     }
@@ -103,41 +95,38 @@ const Reports = () => {
 
   return (
     <div style={styles.container}>
-      <h1 style={styles.title}>Reports</h1>
-      <p style={styles.subtitle}>Generate performance PDF reports</p>
-
-      <div style={styles.tabs}>
-        {tabs.map((tab) => (
-          <button
-            key={tab}
-            onClick={() => setActiveTab(tab)}
-            style={{ ...styles.tab, ...(activeTab === tab ? styles.activeTab : {}) }}
-          >
-            {tab.toUpperCase()}
-          </button>
-        ))}
-      </div>
+      <h1 style={styles.title}>Academic Reports</h1>
+      <p style={styles.subtitle}>Generate and download official student progress forms</p>
 
       <div style={styles.card}>
-        <label style={styles.label}>Select {activeTab}</label>
+        <label style={styles.label}>Learner Name</label>
         <select
           style={styles.select}
-          value={selectedId}
-          onChange={(e) => setSelectedId(e.target.value)}
+          value={selectedStudentId}
+          onChange={(e) => setSelectedStudentId(e.target.value)}
         >
-          <option value="">-- Select --</option>
-          {dataList.map(item => (
-            <option key={item.id} value={item.id}>{item.label}</option>
+          <option value="">-- Choose a Student --</option>
+          {students.map(student => (
+            <option key={student.id} value={student.id}>
+              {student.full_name}
+            </option>
           ))}
         </select>
 
         <button
-          onClick={generatePDF}
-          disabled={!selectedId || loading}
-          style={{ ...styles.btn, ...(loading || !selectedId ? styles.btnDisabled : {}) }}
+          onClick={handleDownloadPDF}
+          disabled={!selectedStudentId || loading}
+          style={{ 
+            ...styles.btn, 
+            ...(loading || !selectedStudentId ? styles.btnDisabled : {}) 
+          }}
         >
-          {loading ? 'Generating...' : 'Download PDF'}
+          {loading ? 'Processing Data...' : 'Download Progress Report'}
         </button>
+
+        <p style={styles.warning}>
+          * A report will only generate if the student has grades recorded for all 8 mandatory subjects.
+        </p>
       </div>
     </div>
   );
