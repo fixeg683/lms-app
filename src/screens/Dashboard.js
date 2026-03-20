@@ -6,6 +6,7 @@ import {
   ScrollView,
   ActivityIndicator,
   Dimensions,
+  Alert,
 } from 'react-native';
 import { supabase } from '../lib/supabase';
 
@@ -26,20 +27,40 @@ const Dashboard = () => {
   const fetchDashboardData = async () => {
     setLoading(true);
     try {
-      // 1. Fetch Counts & Grades with joins
-      const { data: grades, error: gErr } = await supabase
-        .from('grades')
-        .select('score, subjects(name), students(full_name, class)');
-      
-      const { count: studentCount } = await supabase.from('students').select('*', { count: 'exact', head: true });
-      const { count: subjectCount } = await supabase.from('subjects').select('*', { count: 'exact', head: true });
+      // ✅ Step 0: Verify Session (Ensures Admin/Teacher role doesn't block local state)
+      const { data: { session }, error: authError } = await supabase.auth.getSession();
+      if (authError || !session) {
+        console.error("Auth session missing");
+        return;
+      }
 
-      if (gErr) throw gErr;
+      // 1. Fetch Counts & Grades with joins
+      // Note: We fetch everything. RLS on Supabase will handle restricting 
+      // specific rows if you've set up teacher-specific policies.
+      const [gradesRes, studentRes, subjectRes] = await Promise.all([
+        supabase.from('grades').select('score, subjects(name), students(full_name, class)'),
+        supabase.from('students').select('*', { count: 'exact', head: true }),
+        supabase.from('subjects').select('*', { count: 'exact', head: true })
+      ]);
+
+      if (gradesRes.error) throw gradesRes.error;
+
+      const grades = gradesRes.data || [];
+      const studentCount = studentRes.count || 0;
+      const subjectCount = subjectRes.count || 0;
 
       // 2. Process General Stats
       const totalGrades = grades.length;
-      const avgScore = totalGrades > 0 ? (grades.reduce((s, g) => s + g.score, 0) / totalGrades).toFixed(0) : 0;
-      setStats({ students: studentCount || 0, subjects: subjectCount || 0, grades: totalGrades, average: avgScore });
+      const avgScore = totalGrades > 0 
+        ? (grades.reduce((s, g) => s + (g.score || 0), 0) / totalGrades).toFixed(0) 
+        : 0;
+
+      setStats({ 
+        students: studentCount, 
+        subjects: subjectCount, 
+        grades: totalGrades, 
+        average: avgScore 
+      });
 
       // 3. Process Logic for Distribution, Class Performance, and Subjects
       const dist = { AE: 0, BE: 0, EE: 0, ME: 0 };
@@ -47,7 +68,7 @@ const Dashboard = () => {
       const classMap = {};
 
       grades.forEach(g => {
-        const score = g.score;
+        const score = g.score || 0;
         const subName = g.subjects?.name || 'Unknown';
         const className = g.students?.class || 'Unassigned';
         const studentName = g.students?.full_name || 'Anonymous';
@@ -92,18 +113,24 @@ const Dashboard = () => {
       setTopPerformers(grades.sort((a, b) => b.score - a.score).slice(0, 4));
 
     } catch (error) {
-      console.error("Dashboard error:", error);
+      console.error("Dashboard error:", error.message);
+      Alert.alert("Data Error", "Could not load dashboard statistics.");
     } finally {
       setLoading(false);
     }
   };
 
-  if (loading) return <ActivityIndicator size="large" color="#4F46E5" style={{ marginTop: 100 }} />;
+  if (loading) return (
+    <View style={[styles.container, { justifyContent: 'center' }]}>
+      <ActivityIndicator size="large" color="#4F46E5" />
+      <Text style={{ textAlign: 'center', marginTop: 10, color: '#6B7280' }}>Loading Analytics...</Text>
+    </View>
+  );
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={{ paddingBottom: 40 }}>
       <Text style={styles.header}>Dashboard</Text>
-      <Text style={styles.subheader}>Overview of your exam management system</Text>
+      <Text style={styles.subheader}>System Overview • All Roles</Text>
 
       {/* STAT CARDS */}
       <View style={styles.statGrid}>
@@ -135,38 +162,42 @@ const Dashboard = () => {
           <DistRow label="Meeting (ME)" color="#3B82F6" count={distribution.ME} total={stats.grades} />
         </View>
 
-        {/* CLASS PERFORMANCE & TOP PERFORMERS */}
+        {/* CLASS PERFORMANCE */}
         <View style={styles.visualCard}>
           <Text style={styles.cardTitle}>Class Performance</Text>
-          {classPerformance.map(c => (
-            <View key={c.className} style={styles.itemRow}>
-               <View style={styles.subInfo}>
-                  <Text style={styles.subText}>{c.className}</Text>
-                  <Text style={styles.avgNum}>{c.avg}%</Text>
-               </View>
-               <View style={styles.barContainer}>
-                  <View style={[styles.progressBar, { width: `${c.avg}%`, backgroundColor: '#4F46E5' }]} />
-               </View>
-               <Text style={styles.topLabel}>🏆 Top: {c.topStudent}</Text>
-            </View>
-          ))}
+          {classPerformance.length === 0 ? <Text style={styles.emptyText}>No class data</Text> : 
+            classPerformance.map(c => (
+              <View key={c.className} style={styles.itemRow}>
+                 <View style={styles.subInfo}>
+                    <Text style={styles.subText}>{c.className}</Text>
+                    <Text style={styles.avgNum}>{c.avg}%</Text>
+                 </View>
+                 <View style={styles.barContainer}>
+                    <View style={[styles.progressBar, { width: `${c.avg}%`, backgroundColor: '#4F46E5' }]} />
+                 </View>
+                 <Text style={styles.topLabel}>🏆 Top: {c.topStudent}</Text>
+              </View>
+            ))
+          }
         </View>
 
         {/* SUBJECT AVERAGES */}
         <View style={styles.visualCard}>
           <Text style={styles.cardTitle}>Subject Averages</Text>
-          {subjectAverages.map(s => (
-            <View key={s.name} style={styles.subRow}>
-              <View style={styles.subInfo}>
-                <Text style={styles.subText}>{s.name}</Text>
-                <Text style={styles.entriesText}>{s.count} entries</Text>
+          {subjectAverages.length === 0 ? <Text style={styles.emptyText}>No subject data</Text> :
+            subjectAverages.map(s => (
+              <View key={s.name} style={styles.subRow}>
+                <View style={styles.subInfo}>
+                  <Text style={styles.subText}>{s.name}</Text>
+                  <Text style={styles.entriesText}>{s.count} entries</Text>
+                </View>
+                <View style={styles.barContainer}>
+                  <View style={[styles.progressBar, { width: `${s.avg}%` }]} />
+                  <Text style={styles.avgNum}>{s.avg}</Text>
+                </View>
               </View>
-              <View style={styles.barContainer}>
-                <View style={[styles.progressBar, { width: `${s.avg}%` }]} />
-                <Text style={styles.avgNum}>{s.avg}</Text>
-              </View>
-            </View>
-          ))}
+            ))
+          }
         </View>
       </View>
     </ScrollView>
@@ -213,6 +244,7 @@ const styles = StyleSheet.create({
   barContainer: { flexDirection: 'row', alignItems: 'center', marginTop: 5 },
   progressBar: { height: 6, backgroundColor: '#3B82F6', borderRadius: 3 },
   avgNum: { marginLeft: 10, fontWeight: 'bold', color: '#3B82F6', fontSize: 12 },
+  emptyText: { textAlign: 'center', color: '#9CA3AF', fontSize: 12, marginTop: 10 },
 });
 
 export default Dashboard;

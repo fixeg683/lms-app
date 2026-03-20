@@ -7,8 +7,8 @@ import {
   TouchableOpacity,
   StyleSheet,
   ActivityIndicator,
+  Alert,
 } from 'react-native';
-import { Picker } from '@react-native-picker/picker'; // Optional: Use a picker or custom list
 import { supabase } from '../lib/supabase';
 
 const AddGradeModal = ({ isOpen, onClose, onRefresh }) => {
@@ -17,9 +17,9 @@ const AddGradeModal = ({ isOpen, onClose, onRefresh }) => {
   const [selectedStudent, setSelectedStudent] = useState('');
   const [selectedSubject, setSelectedSubject] = useState('');
   const [score, setScore] = useState('');
+  const [comments, setComments] = useState(''); // ✅ Added Comments State
   const [loading, setLoading] = useState(false);
 
-  // Fetch lists whenever modal opens
   useEffect(() => {
     if (isOpen) {
       fetchData();
@@ -27,10 +27,14 @@ const AddGradeModal = ({ isOpen, onClose, onRefresh }) => {
   }, [isOpen]);
 
   const fetchData = async () => {
-    const { data: st } = await supabase.from('students').select('id, full_name');
-    const { data: sb } = await supabase.from('subjects').select('id, name');
-    setStudents(st || []);
-    setSubjects(sb || []);
+    try {
+      const { data: st } = await supabase.from('students').select('id, full_name').order('full_name');
+      const { data: sb } = await supabase.from('subjects').select('id, name').order('name');
+      setStudents(st || []);
+      setSubjects(sb || []);
+    } catch (error) {
+      console.error("Fetch error:", error);
+    }
   };
 
   const handleAdd = async () => {
@@ -46,6 +50,7 @@ const AddGradeModal = ({ isOpen, onClose, onRefresh }) => {
           student_id: selectedStudent, 
           subject_id: selectedSubject, 
           score: parseFloat(score),
+          comments: comments.trim(), // ✅ Saving comments
           status: 'Locked' 
         },
       ]);
@@ -53,6 +58,7 @@ const AddGradeModal = ({ isOpen, onClose, onRefresh }) => {
       if (error) throw error;
 
       setScore('');
+      setComments('');
       setSelectedStudent('');
       setSelectedSubject('');
       onClose?.();
@@ -70,7 +76,6 @@ const AddGradeModal = ({ isOpen, onClose, onRefresh }) => {
         <View style={styles.modal}>
           <Text style={styles.title}>Add New Grade</Text>
 
-          {/* Simple Dropdown Logic using HTML Pickers for Web compatibility */}
           <Text style={styles.label}>Student</Text>
           <select 
             style={webStyles.select}
@@ -101,6 +106,18 @@ const AddGradeModal = ({ isOpen, onClose, onRefresh }) => {
             placeholderTextColor="#9CA3AF"
           />
 
+          {/* ✅ Added Comments Input */}
+          <Text style={styles.label}>Teacher Comments</Text>
+          <TextInput
+            placeholder="Provide feedback..."
+            value={comments}
+            onChangeText={setComments}
+            multiline
+            numberOfLines={3}
+            style={[styles.input, styles.textArea]}
+            placeholderTextColor="#9CA3AF"
+          />
+
           <View style={styles.actions}>
             <TouchableOpacity onPress={onClose} style={styles.button} disabled={loading}>
               <Text style={styles.cancel}>Cancel</Text>
@@ -120,7 +137,6 @@ const AddGradeModal = ({ isOpen, onClose, onRefresh }) => {
   );
 };
 
-// Web-specific styles for the <select> tag if you are on React Native Web
 const webStyles = {
   select: {
     width: '100%',
@@ -137,10 +153,11 @@ const webStyles = {
 
 const styles = StyleSheet.create({
   overlay: { flex: 1, backgroundColor: 'rgba(17, 24, 39, 0.4)', justifyContent: 'center', alignItems: 'center', padding: 20 },
-  modal: { width: '100%', maxWidth: 340, backgroundColor: '#FFFFFF', padding: 24, borderRadius: 20, shadowColor: '#000', elevation: 10 },
+  modal: { width: '100%', maxWidth: 360, backgroundColor: '#FFFFFF', padding: 24, borderRadius: 20, shadowColor: '#000', elevation: 10 },
   title: { fontSize: 20, fontWeight: 'bold', color: '#111827', marginBottom: 20 },
   label: { fontSize: 12, fontWeight: 'bold', color: '#6B7280', marginBottom: 4, marginLeft: 4 },
   input: { width: '100%', backgroundColor: '#F9FAFB', borderWidth: 1, borderColor: '#F3F4F6', padding: 14, borderRadius: 12, marginBottom: 12, fontSize: 14, color: '#374151' },
+  textArea: { height: 80, textAlignVertical: 'top' },
   actions: { flexDirection: 'row', justifyContent: 'flex-end', marginTop: 12, gap: 8 },
   button: { paddingHorizontal: 16, paddingVertical: 10 },
   cancel: { color: '#6B7280', fontWeight: '600', fontSize: 14 },

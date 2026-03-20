@@ -1,5 +1,5 @@
 import React from "react";
-import { Platform, View, Text, TouchableOpacity, useWindowDimensions } from "react-native";
+import { View, Text, TouchableOpacity, useWindowDimensions } from "react-native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import {
   createDrawerNavigator,
@@ -25,35 +25,23 @@ import Reports from "../screens/Reports";
 const Stack = createNativeStackNavigator();
 const Drawer = createDrawerNavigator();
 
-// ✅ Custom Burger Button
 const MenuButton = ({ navigation }) => (
-  <TouchableOpacity
-    onPress={() => navigation.toggleDrawer()}
-    style={{ marginLeft: 15, padding: 5 }}
-  >
+  <TouchableOpacity onPress={() => navigation.toggleDrawer()} style={{ marginLeft: 15, padding: 5 }}>
     <MaterialCommunityIcons name="menu" size={28} color="#2563EB" />
   </TouchableOpacity>
 );
 
-// ✅ Sidebar Content
 function CustomDrawerContent(props) {
   const roleName = props.roleName || "User";
-
   return (
     <View style={{ flex: 1 }}>
       <DrawerContentScrollView {...props}>
-        <View style={{
-          padding: 20,
-          borderBottomWidth: 1,
-          borderBottomColor: '#f4f4f4',
-          marginBottom: 10
-        }}>
+        <View style={{ padding: 20, borderBottomWidth: 1, borderBottomColor: '#f4f4f4', marginBottom: 10 }}>
           <Text style={{ fontWeight: 'bold', fontSize: 18, color: '#2563EB' }}>EduManage Pro</Text>
           <Text style={{ fontSize: 12, color: '#666' }}>{roleName} Portal</Text>
         </View>
         <DrawerItemList {...props} />
       </DrawerContentScrollView>
-
       <View style={{ padding: 20, borderTopWidth: 1, borderTopColor: '#f4f4f4' }}>
         <TouchableOpacity
           style={{ flexDirection: 'row', alignItems: 'center', padding: 10 }}
@@ -67,7 +55,6 @@ function CustomDrawerContent(props) {
   );
 }
 
-// ✅ Main Layout Component to handle Responsive Logic
 const ResponsiveDrawer = ({ role, children }) => {
   const { width } = useWindowDimensions();
   const isLargeScreen = width >= 768;
@@ -76,14 +63,9 @@ const ResponsiveDrawer = ({ role, children }) => {
     <Drawer.Navigator
       drawerContent={(props) => <CustomDrawerContent {...props} roleName={role} />}
       screenOptions={({ navigation }) => ({
-        headerShown: !isLargeScreen, // Hide header on desktop if sidebar is permanent
+        headerShown: !isLargeScreen,
         drawerType: isLargeScreen ? "permanent" : "front",
-        drawerStyle: {
-          width: 260,
-          borderRightWidth: 1,
-          borderRightColor: '#e5e7eb',
-        },
-        // ✅ Click outside to close behavior (automatic in "front" type)
+        drawerStyle: { width: 260, borderRightWidth: 1, borderRightColor: '#e5e7eb' },
         overlayColor: "rgba(0, 0, 0, 0.5)", 
         headerLeft: () => <MenuButton navigation={navigation} />,
         headerTitleAlign: 'center',
@@ -96,7 +78,7 @@ const ResponsiveDrawer = ({ role, children }) => {
   );
 };
 
-// ================= ADMIN =================
+// ================= ADMIN ROOT =================
 function AdminRoot() {
   return (
     <ResponsiveDrawer role="Admin">
@@ -106,25 +88,25 @@ function AdminRoot() {
       <Drawer.Screen name="Grades" component={Grades} options={{ drawerIcon: ({ color, size }) => <MaterialCommunityIcons name="format-list-checks" color={color} size={size} /> }} />
       <Drawer.Screen name="Users" component={Users} options={{ drawerIcon: ({ color, size }) => <MaterialCommunityIcons name="account-cog-outline" color={color} size={size} /> }} />
       <Drawer.Screen name="Classes" component={Classes} options={{ drawerIcon: ({ color, size }) => <MaterialCommunityIcons name="google-classroom" color={color} size={size} /> }} />
-      <Drawer.Screen name="ExamInstances" component={ExamInstances} options={{ title: "Exams", drawerIcon: ({ color, size }) => <MaterialCommunityIcons name="clock-outline" color={color} size={size} /> }} />
+      <Drawer.Screen name="Exams" component={ExamInstances} options={{ drawerIcon: ({ color, size }) => <MaterialCommunityIcons name="clock-outline" color={color} size={size} /> }} />
       <Drawer.Screen name="Corrections" component={Corrections} options={{ drawerIcon: ({ color, size }) => <MaterialCommunityIcons name="file-check-outline" color={color} size={size} /> }} />
       <Drawer.Screen name="Reports" component={Reports} options={{ drawerIcon: ({ color, size }) => <MaterialCommunityIcons name="chart-bar" color={color} size={size} /> }} />
     </ResponsiveDrawer>
   );
 }
 
-// ================= USER =================
+// ================= TEACHER / MAIN ROOT =================
 function MainRoot() {
   return (
-    <ResponsiveDrawer role="User">
-      <Drawer.Screen name="Dashboard" component={Dashboard} options={{ drawerIcon: ({ color, size }) => <MaterialCommunityIcons name="home-outline" color={color} size={size} /> }} />
-      <Drawer.Screen name="MyGrades" component={Dashboard} options={{ title: "My Grades", drawerIcon: ({ color, size }) => <MaterialCommunityIcons name="school-outline" color={color} size={size} /> }} />
-      <Drawer.Screen name="Reports" component={Dashboard} options={{ drawerIcon: ({ color, size }) => <MaterialCommunityIcons name="file-chart-outline" color={color} size={size} /> }} />
+    <ResponsiveDrawer role="Teacher">
+      <Drawer.Screen name="Dashboard" component={Dashboard} options={{ drawerIcon: ({ color, size }) => <MaterialCommunityIcons name="view-dashboard-outline" color={color} size={size} /> }} />
+      <Drawer.Screen name="Classes" component={Classes} options={{ drawerIcon: ({ color, size }) => <MaterialCommunityIcons name="google-classroom" color={color} size={size} /> }} />
+      <Drawer.Screen name="Grades" component={Grades} options={{ drawerIcon: ({ color, size }) => <MaterialCommunityIcons name="format-list-checks" color={color} size={size} /> }} />
+      <Drawer.Screen name="Reports" component={Reports} options={{ drawerIcon: ({ color, size }) => <MaterialCommunityIcons name="file-chart-outline" color={color} size={size} /> }} />
     </ResponsiveDrawer>
   );
 }
 
-// ================= ROOT =================
 export default function AppNavigator({ session }) {
   const getInitialRoute = () => {
     if (!session || !session.user) return "Login";
